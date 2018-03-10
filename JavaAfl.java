@@ -51,6 +51,9 @@ public class JavaAfl
             _current_iteration++;
             return true;
         }
+        if (_allow_persistent) {
+            _send_map();
+        }
         return false;
     }
 }

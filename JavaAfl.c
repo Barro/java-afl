@@ -17,7 +17,9 @@ const size_t MAP_SIZE = 1 << MAP_SIZE_POW2;
 
 static void* g_afl_area = (void*)-1;
 static void* g_zero_area = NULL;
+static jfieldID g_map_field_id = NULL;
 static jobject g_map_field = NULL;
+static bool g_is_persistent = false;
 
 static void init_map_field(JNIEnv *env, jclass cls)
 {
@@ -26,11 +28,16 @@ static void init_map_field(JNIEnv *env, jclass cls)
         printf("No map field found!\n");
         return;
     }
-    g_map_field =(*env)->GetStaticObjectField(env, cls, map_field_id);
-    if (g_map_field == NULL) {
-        printf("Could not get object field!\n");
-        return;
-    }
+    g_map_field_id = map_field_id;
+}
+
+static jobject get_map_field(JNIEnv *env, jclass cls)
+{
+    return (*env)->GetStaticObjectField(env, cls, g_map_field_id);
+    /* if (g_map_field == NULL) { */
+    /*     printf("Could not get object field!\n"); */
+    /*     return; */
+    /* } */
 }
 
 JNIEXPORT void JNICALL Java_JavaAfl__1init_1impl
@@ -100,6 +107,8 @@ JNIEXPORT void JNICALL Java_JavaAfl__1init_1impl
         close(FORKSRV_FD + 1);
     }
 
+    g_is_persistent = is_persistent;
+
     initialized = true;
 
     const char* afl_shm_id = getenv(SHM_ENV_VAR);
@@ -113,22 +122,23 @@ JNIEXPORT void JNICALL Java_JavaAfl__1init_1impl
         abort();
     }
     g_zero_area = calloc(1, MAP_SIZE);
+    init_map_field(env, cls);
+    printf("START %p %p %p\n", g_afl_area, env, g_map_field);
+    (*env)->SetByteArrayRegion(
+        env, get_map_field(env, cls), 0, MAP_SIZE, g_zero_area);
 }
 
 static void send_map(JNIEnv * env, jclass cls)
 {
-    init_map_field(env, cls);
-    if (g_map_field == NULL) {
-        return;
-    }
     /* jbyte* g_map_data = (*env)->GetByteArrayElements(env, g_map_field, NULL); */
     /* jbyte* map_data; */
     /* if (g_map_data == NULL) { */
     /*     return; */
     /* } */
     if (g_afl_area != (void*)-1) {
-        (*env)->GetByteArrayRegion(env, g_map_field, 0, MAP_SIZE, g_afl_area);
-        (*env)->SetByteArrayRegion(env, g_map_field, 0, MAP_SIZE, g_zero_area);
+        jobject map_field = get_map_field(env, cls);
+        (*env)->GetByteArrayRegion(env, map_field, 0, MAP_SIZE, g_afl_area);
+        (*env)->SetByteArrayRegion(env, map_field, 0, MAP_SIZE, g_zero_area);
         //memcpy(g_afl_area, g_map_data, MAP_SIZE);
     }
 }
@@ -136,7 +146,14 @@ static void send_map(JNIEnv * env, jclass cls)
 JNIEXPORT void JNICALL Java_JavaAfl__1after_1main
   (JNIEnv * env, jclass cls)
 {
-    send_map(env, cls);
+    // In persistent mode JavaAfl.loop() does the final map update for
+    // us. Doing map updates after the main loop leads into
+    // instability, as there are map updates in the code after that.
+    // TODO rethink this approach, as there is quite a lot of ifs
+    // taking care of the persistent mode.
+    if (!g_is_persistent) {
+        send_map(env, cls);
+    }
     // This should not be needed here, but something in the forkserver
     // prevents this from existing cleanly.
     _Exit(0);
