@@ -16,6 +16,7 @@ const int FORKSRV_FD = 198;
 const size_t MAP_SIZE = 1 << MAP_SIZE_POW2;
 
 static void* g_afl_area = (void*)-1;
+static void* g_zero_area = NULL;
 static jobject g_map_field = NULL;
 
 static void init_map_field(JNIEnv *env, jclass cls)
@@ -32,9 +33,14 @@ static void init_map_field(JNIEnv *env, jclass cls)
     }
 }
 
-JNIEXPORT void JNICALL Java_JavaAfl__1before_1main
-(JNIEnv *env, jclass cls, jboolean is_persistent)
+JNIEXPORT void JNICALL Java_JavaAfl__1init_1impl
+  (JNIEnv * env, jclass cls, jboolean is_persistent)
 {
+    static bool initialized = false;
+    if (initialized) {
+        abort();
+    }
+
     //printf("Starting\n");
     bool use_forkserver = true;
     {
@@ -94,6 +100,8 @@ JNIEXPORT void JNICALL Java_JavaAfl__1before_1main
         close(FORKSRV_FD + 1);
     }
 
+    initialized = true;
+
     const char* afl_shm_id = getenv(SHM_ENV_VAR);
     if (afl_shm_id == NULL) {
         return;
@@ -104,24 +112,31 @@ JNIEXPORT void JNICALL Java_JavaAfl__1before_1main
         perror("No shared memory area!");
         abort();
     }
+    g_zero_area = calloc(1, MAP_SIZE);
 }
 
-JNIEXPORT void JNICALL Java_JavaAfl__1after_1main
-  (JNIEnv * env, jclass cls)
+static void send_map(JNIEnv * env, jclass cls)
 {
     init_map_field(env, cls);
     if (g_map_field == NULL) {
         return;
     }
     /* jbyte* g_map_data = (*env)->GetByteArrayElements(env, g_map_field, NULL); */
-    jbyte* map_data;
+    /* jbyte* map_data; */
     /* if (g_map_data == NULL) { */
     /*     return; */
     /* } */
     if (g_afl_area != (void*)-1) {
         (*env)->GetByteArrayRegion(env, g_map_field, 0, MAP_SIZE, g_afl_area);
+        (*env)->SetByteArrayRegion(env, g_map_field, 0, MAP_SIZE, g_zero_area);
         //memcpy(g_afl_area, g_map_data, MAP_SIZE);
     }
+}
+
+JNIEXPORT void JNICALL Java_JavaAfl__1after_1main
+  (JNIEnv * env, jclass cls)
+{
+    send_map(env, cls);
     // This should not be needed here, but something in the forkserver
     // prevents this from existing cleanly.
     _Exit(0);
@@ -130,5 +145,13 @@ JNIEXPORT void JNICALL Java_JavaAfl__1after_1main
 JNIEXPORT void JNICALL Java_JavaAfl__1handle_1uncaught_1exception
   (JNIEnv * env, jclass cls)
 {
+    send_map(env, cls);
     kill(getpid(), SIGUSR1);
+}
+
+JNIEXPORT void JNICALL Java_JavaAfl__1send_1map
+  (JNIEnv * env, jclass cls)
+{
+    send_map(env, cls);
+    kill(getpid(), SIGSTOP);
 }
