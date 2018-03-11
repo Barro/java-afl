@@ -2,6 +2,21 @@
 
 set -xeuo pipefail
 
+ASM_URL=http://download.forge.ow2.org/asm/asm-6.1.jar
+ASM_SHA256=db788a985a2359666aa29a9a638f03bb67254e4bd5f453a32717593de887b6b1
+if [[ ! -f asm-6.1.jar ]]; then
+    while true; do
+        curl --retry 3 "$ASM_URL" > asm-6.1.jar.tmp
+        calculated=$(sha256sum -b asm-6.1.jar.tmp | cut -f 1 -d " ")
+        if [[ "$calculated" == "$ASM_SHA256" ]]; then
+            mv asm-6.1.jar.tmp asm-6.1.jar
+            break
+        else
+            echo >&2 "Checksum mismatch, $calculated != $ASM_SHA256. Re-downloading..."
+        fi
+    done
+fi
+
 if [[ ! -f asm-6.1.jar ]]; then
     echo -n >&2 "Could not find ASM 6.1. Please download asm-jar from "
     echo >&2 "https://forge.ow2.org/projects/asm/"
