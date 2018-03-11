@@ -1,5 +1,7 @@
 public class JavaAfl
 {
+    @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+    @java.lang.annotation.Target(java.lang.annotation.ElementType.METHOD)
     public @interface CustomInit {};
 
     static class Handler implements Thread.UncaughtExceptionHandler {
@@ -8,13 +10,16 @@ public class JavaAfl
         }
     }
 
-    public static final int MAP_SIZE_POW2 = 16;
-    public static final int MAP_SIZE = 1 << MAP_SIZE_POW2;
-    public static byte map[] = new byte[MAP_SIZE];
+    // These are functions that the instrumentation part uses:
+    static private native int _get_map_size();
+    public static byte map[];
     public static int prev_location;
 
     static {
+        // TODO make it possible to load this native library from
+        // inside a .jar file that JavaAfl is coming from:
         System.loadLibrary("java-afl");
+        map = new byte[_get_map_size()];
     }
 
     static public void _before_main()
