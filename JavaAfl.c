@@ -52,7 +52,12 @@ JNIEXPORT void JNICALL Java_JavaAfl__1init_1impl
 {
     static bool initialized = false;
     if (initialized) {
-        fprintf(stderr, "Tried to initialize java-afl twice!");
+        fprintf(
+            stderr,
+            "Tried to initialize java-afl twice! "
+            "If you are using deferred or persistent mode, remember to "
+            "annotate your main() function with @JavaAfl.CustomInit!\n"
+            );
         abort();
     }
 

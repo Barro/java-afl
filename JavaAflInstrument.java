@@ -15,13 +15,16 @@ public class JavaAflInstrument
 
     static class InstrumentingMethodVisitor extends MethodVisitor
     {
-        boolean _is_main;
+        private boolean _is_main;
+        private boolean _has_custom_init;
         private Random _random;
+
         public InstrumentingMethodVisitor(MethodVisitor mv_, boolean is_main)
         {
             super(Opcodes.ASM6, mv_);
             _is_main = is_main;
             _random = new Random();
+            _has_custom_init = false;
         }
 
         private void _aflMaybeLog()
@@ -65,7 +68,7 @@ public class JavaAflInstrument
         public void visitCode()
         {
             mv.visitCode();
-            if (_is_main) {
+            if (_is_main && !_has_custom_init) {
                 mv.visitMethodInsn(
                     INVOKESTATIC,
                     "JavaAfl",
@@ -102,6 +105,17 @@ public class JavaAflInstrument
                     false);
             }
             mv.visitInsn(opcode);
+        }
+
+        @Override
+        public AnnotationVisitor visitAnnotation(String desc, boolean visible)
+        {
+            // TODO it should be possible to also get the full class
+            // descriptor name out during the compilation time...
+            if (desc.equals("L" + JavaAfl.CustomInit.class.getName() + ";")) {
+                _has_custom_init = true;
+            }
+            return null;
         }
     }
 

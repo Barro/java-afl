@@ -40,6 +40,13 @@ public class JavaAfl
 
     static private native void _send_map();
 
+    // Function to use in the deferred mode in combination
+    // with @JavaAfl.CustomInit annotation:
+    static public void init()
+    {
+        _init(false);
+    }
+
     static private boolean _allow_persistent = false;
     static private int _current_iteration = 0;
     static public boolean loop(int iterations)
