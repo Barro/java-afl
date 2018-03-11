@@ -152,18 +152,21 @@ public class JavaAflInstrument
 
     public static void main(String args[]) throws java.io.IOException
     {
-        if (args.length < 2) {
-            System.err.println("Usage: instrumentor in out");
+        if (args.length < 1) {
+            System.err.println("Usage: instrumentor classfile...");
             return;
         }
 
-        ClassReader reader = new ClassReader(
-            new java.io.FileInputStream(args[0]));
-        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-        ClassVisitor visitor = new InstrumentingClassVisitor(writer);
-        reader.accept(visitor, ClassReader.SKIP_DEBUG);
-        byte[] bytes = writer.toByteArray();
-        (new java.io.FileOutputStream(args[1])).write(bytes);
-        System.out.println("Instrumented " + total_locations + " locations");
+        for (String filename : args) {
+            ClassReader reader = new ClassReader(
+                new java.io.FileInputStream(filename));
+            ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+            ClassVisitor visitor = new InstrumentingClassVisitor(writer);
+            reader.accept(visitor, ClassReader.SKIP_DEBUG);
+            byte[] bytes = writer.toByteArray();
+            (new java.io.FileOutputStream(filename)).write(bytes);
+            System.out.println(
+                "Instrumented " + total_locations + " locations: " + filename);
+        }
     }
 }

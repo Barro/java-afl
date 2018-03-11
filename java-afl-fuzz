@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -eu
+
+if ! command -v afl-fuzz > /dev/null; then
+    echo >&2 "$0: afl-fuzz not found!"
+    echo >&2
+    echo >&2 "You can get it from <http://lcamtuf.coredump.cx/afl/> as part of afl."
+    exit 127
+fi
+
+JAVA_AFL_PERSISTENT=1 AFL_SKIP_BIN_CHECK=1 AFL_DUMB_FORKSRV=1 exec afl-fuzz "$@"

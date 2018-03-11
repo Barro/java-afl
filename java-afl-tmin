@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -eu
+
+if ! command -v afl-tmin > /dev/null; then
+    echo >&2 "$0: afl-tmin not found!"
+    echo >&2
+    echo >&2 "You can get it from <http://lcamtuf.coredump.cx/afl/> as part of afl."
+    exit 127
+fi
+
+AFL_SKIP_BIN_CHECK=1 exec afl-tmin "$@"
