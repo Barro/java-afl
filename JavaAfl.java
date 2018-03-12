@@ -19,10 +19,10 @@ public class JavaAfl
     private final static String _jni_code = "<INJECT-JNI>";
 
     static {
-        byte jni_code[] = (java.util.Base64.getDecoder()).decode(_jni_code);
         java.io.File jni_target = null;
         try {
-            jni_target = java.io.File.createTempFile("libjava-afl", "so");
+            byte jni_code[] = _jni_code.getBytes("ISO-8859-1");
+            jni_target = java.io.File.createTempFile("libjava-afl-", ".so");
             (new java.io.FileOutputStream(jni_target)).write(jni_code);
             System.load(jni_target.getAbsolutePath());
         } catch (java.io.IOException e) {

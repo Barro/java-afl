@@ -53,7 +53,7 @@ public class JavaAflInject
         long library_size = library.length();
         byte library_data[] = new byte[(int)library_size];
         (new FileInputStream(library)).read(library_data);
-        String jni_data = (java.util.Base64.getEncoder()).encodeToString(library_data);
+        String jni_data = new String(library_data, "ISO-8859-1");
         ClassReader reader = new InjectingReader(
             new FileInputStream(class_filename), jni_data);
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
