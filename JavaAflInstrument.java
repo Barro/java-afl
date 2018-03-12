@@ -1,3 +1,8 @@
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Random;
+
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
@@ -5,13 +10,13 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import java.util.Random;
 
 import static org.objectweb.asm.Opcodes.*;
 
 public class JavaAflInstrument
 {
-    static int total_locations = 0;
+    static private final String INSTRUMENTATION_MARKER = "__JAVA-AFL-INSTRUMENTED-CLASSFILE__";
+    static private int total_locations = 0;
 
     static class InstrumentingMethodVisitor extends MethodVisitor
     {
@@ -164,7 +169,28 @@ public class JavaAflInstrument
         }
     }
 
-    public static void main(String args[]) throws java.io.IOException
+    private static boolean has_instrumentation(ClassReader reader)
+    {
+        // It would be sooo much more easy if Java had memmem() like
+        // function in its standard library...
+        int items = reader.getItemCount();
+        byte marker_bytes[] = INSTRUMENTATION_MARKER.getBytes();
+        for (int i = 0 ; i < items; i++) {
+            int index = reader.getItem(i);
+            int item_size = reader.b[index] * 256 + reader.b[index + 1];
+            if (item_size != marker_bytes.length) {
+                continue;
+            }
+            byte value[] = Arrays.copyOfRange(
+                reader.b, index + 2, index + 2 + marker_bytes.length);
+            if (Arrays.equals(marker_bytes, value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void main(String args[]) throws IOException
     {
         if (args.length < 1) {
             System.err.println("Usage: instrumentor classfile...");
@@ -173,10 +199,15 @@ public class JavaAflInstrument
 
         for (String filename : args) {
             ClassReader reader = new ClassReader(
-                new java.io.FileInputStream(filename));
+                new FileInputStream(filename));
+            if (has_instrumentation(reader)) {
+                System.err.println("Already instrumented " + filename);
+                continue;
+            }
             ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
             ClassVisitor visitor = new InstrumentingClassVisitor(writer);
             reader.accept(visitor, ClassReader.SKIP_DEBUG);
+            writer.newUTF8(INSTRUMENTATION_MARKER);
             byte[] bytes = writer.toByteArray();
             (new java.io.FileOutputStream(filename)).write(bytes);
             System.out.println(

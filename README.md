@@ -110,13 +110,11 @@ TODO description and more easy to use implementation.
 * Instrument full jar files instead of individual class files.
   * Include JavaAfl as part of instrumented .jar file or .class file
     with main() method.
-* Detect if a class file is already instrumented. This now does
-  nothing to prevent double-instrumentation and that leads to
-  immediate abort.
 * Better way to build this. Multiple different build tools are
   probably a must.
 * Alternative method implementations based on fuzzing mode (similar to
-  C preprocessor's #ifdef/#ifndef). Probably somehow with annotations.
+  C preprocessor's #ifdef/#ifndef). Probably somehow with annotations
+  or `System.getProperty("FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION")`.
 
 ## Greetz
 
