@@ -14,6 +14,15 @@ public class JavaAflInject
             FileInputStream file, String data) throws IOException
         {
             super(file);
+            if (data.length() > 65535) {
+                // TODO Java's constant pool limits the size of each
+                // string constant to 64 kilobytes. This could be
+                // worked around by combining multiple values during
+                // runtime. It's actually quite possible to exceed
+                // this by having plenty of debugging data added.
+                throw new IllegalArgumentException(
+                    "Injected value can not exceed 64 kilobytes!");
+            }
             _data = data;
         }
 

@@ -34,7 +34,7 @@ export CLASSPATH=asm-6.1.jar:out
 javac -d out JavaAfl.java
 javac -d out JavaAflInstrument.java
 javah -d out -jni JavaAfl
-gcc -shared -Wl,-soname,libjava-afl.so -o out/libjava-afl.so -fPIC "${JNI_PATHS[@]}" JavaAfl.c
+cc -Os -shared -Wl,-soname,libjava-afl.so -o out/libjava-afl.so -fPIC "${JNI_PATHS[@]}" JavaAfl.c
 javac -d out JavaAflInject.java
 java JavaAflInject out/JavaAfl.class out/libjava-afl.so
 
