@@ -76,12 +76,18 @@ public class ProgramPersistent {
 ```
 
 Fuzz. JVM allocates on my Debian system around 10 gigabytes of virtual
-memory. You might find [recidivm](http://jwilk.net/software/recidivm)
-useful in estimating memory limits:
+memory, so default virtual memory limits of afl-fuzz need to be set
+higher (`-m 20000`).
 
 ```
 $ java-afl-fuzz -m 20000 -i in/ -o out/ -- java -Djava.library.path=out/ ClassToInstrument
 ```
+
+You may want to adjust maximum heap size with
+[`-Xmx`](https://docs.oracle.com/cd/E15523_01/web.1111/e13814/jvm_tuning.htm#PERFM164)
+option to be smaller than the default if you fuzz multiple JVM
+instances on the same machine, as default operating system provided
+memory limits won't help you here.
 
 ## Building
 
