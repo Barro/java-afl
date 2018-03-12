@@ -1,0 +1,19 @@
+language: c
+
+os:
+  - linux
+
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - openjdk-8-jdk
+      - curl
+
+compiler:
+  - gcc
+
+install: true
+
+script: ./.travis-ci.sh
