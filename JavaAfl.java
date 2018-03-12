@@ -10,10 +10,13 @@ public class JavaAfl
         }
     }
 
-    // These are functions that the instrumentation part uses:
+    // Map size link between C code Java:
     static private native int _get_map_size();
+
+    // These are fields that the instrumentation part uses to do its thing:
     public static byte map[];
     public static int prev_location;
+
     // If you change the string value of this, you also need to change
     // the corresponding value at JavaAflInject.java file!
     private final static String _jni_code = "<INJECT-JNI>";
