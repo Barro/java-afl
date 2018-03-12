@@ -35,8 +35,8 @@ javac -d out JavaAfl.java
 javac -d out JavaAflInstrument.java
 javah -d out -jni JavaAfl
 gcc -shared -Wl,-soname,libjava-afl.so -o out/libjava-afl.so -fPIC "${JNI_PATHS[@]}" JavaAfl.c
-
-mkdir -p uninstrumented
+javac -d out JavaAflInject.java
+java JavaAflInject out/JavaAfl.class out/libjava-afl.so
 
 # Test classes
 javac -d out TestUtils.java
@@ -44,7 +44,7 @@ javac -d out TestForking.java
 javac -d out TestDeferred.java
 javac -d out TestPersistent.java
 javac -d out TestNull.java
-java -Djava.library.path=out/ JavaAflInstrument \
+java JavaAflInstrument \
      out/TestUtils.class \
      out/TestForking.class \
      out/TestDeferred.class \
@@ -53,21 +53,21 @@ java -Djava.library.path=out/ JavaAflInstrument \
 # javac TestDeferred.java
 
 # Test this:
-./java-afl-showmap -m 30000 -o out/tuples-forking.txt -- java -Djava.library.path=out TestForking < in/a.txt
+./java-afl-showmap -m 30000 -o out/tuples-forking.txt -- java TestForking < in/a.txt
 tuples_forking=$(wc -l < out/tuples-forking.txt)
 if [[ "$tuples_forking" -lt 6 ]]; then
     echo >&2 "Failed to generate enough tuples in forking implementation!"
     exit 1
 fi
 
-./java-afl-showmap -m 30000 -o out/tuples-deferred.txt -- java -Djava.library.path=out TestDeferred < in/a.txt
+./java-afl-showmap -m 30000 -o out/tuples-deferred.txt -- java TestDeferred < in/a.txt
 tuples_deferred=$(wc -l < out/tuples-deferred.txt)
 if [[ "$tuples_deferred" -lt 6 ]]; then
     echo >&2 "Failed to generate enough tuples in deferred implementation!"
     exit 1
 fi
 
-./java-afl-showmap -m 30000 -o out/tuples-persistent.txt -- java -Djava.library.path=out TestPersistent < in/a.txt
+./java-afl-showmap -m 30000 -o out/tuples-persistent.txt -- java TestPersistent < in/a.txt
 tuples_persistent=$(wc -l < out/tuples-persistent.txt)
 if [[ "$tuples_persistent" -lt 6 ]]; then
     echo >&2 "Failed to generate enough tuples in persistent implementation!"

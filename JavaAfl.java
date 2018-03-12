@@ -14,11 +14,28 @@ public class JavaAfl
     static private native int _get_map_size();
     public static byte map[];
     public static int prev_location;
+    // If you change the string value of this, you also need to change
+    // the corresponding value at JavaAflInject.java file!
+    private final static String _jni_code = "<INJECT-JNI>";
 
     static {
-        // TODO make it possible to load this native library from
-        // inside a .jar file that JavaAfl is coming from:
-        System.loadLibrary("java-afl");
+        byte jni_code[] = (java.util.Base64.getDecoder()).decode(_jni_code);
+        java.io.File jni_target = null;
+        try {
+            jni_target = java.io.File.createTempFile("libjava-afl", "so");
+            (new java.io.FileOutputStream(jni_target)).write(jni_code);
+            System.load(jni_target.getAbsolutePath());
+        } catch (java.io.IOException e) {
+            new RuntimeException(e);
+        } finally {
+            if (jni_target != null) {
+                // We need to explicitly delete a file here instead of
+                // using File.deleteOnExit(), as the JNI
+                // instrumentation can exit from JVM without running
+                // exit handlers.
+                jni_target.delete();
+            }
+        }
         map = new byte[_get_map_size()];
     }
 

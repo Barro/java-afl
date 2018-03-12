@@ -140,7 +140,7 @@ public class JavaAflInstrument
             MethodVisitor mv = cv.visitMethod(
                 access, name, desc, signature, exceptions);
             if (mv == null) {
-                return mv;
+                return null;
             }
             // Instrument all public static main functions with the
             // start-up and teardown instrumentation.

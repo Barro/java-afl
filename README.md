@@ -35,10 +35,14 @@ input.
 Instrumentation is done by running JavaAflInstrument program for each
 class file to instrument:
 
-```
+```bash
 $ export CLASSPATH=asm-6.1.jar:out/
-$ java -Djava.library.path=out/ JavaAflInstrument out/ClassToInstrument.class
+$ java JavaAflInstrument out/ClassToInstrument.class
 ```
+
+This actually injects native JNI code into the used class files, so
+you can only run these files on similar enough systems that they were
+instrumented on.
 
 Using persistent or deferred modes requires a special annotation for
 the `main()` function:
@@ -79,8 +83,8 @@ Fuzz. JVM allocates on my Debian system around 10 gigabytes of virtual
 memory, so default virtual memory limits of afl-fuzz need to be set
 higher (`-m 20000`).
 
-```
-$ java-afl-fuzz -m 20000 -i in/ -o out/ -- java -Djava.library.path=out/ ClassToInstrument
+```bash
+$ java-afl-fuzz -m 20000 -i in/ -o out/ -- java ClassToInstrument
 ```
 
 You may want to adjust maximum heap size with
@@ -95,7 +99,7 @@ You need to have [ASM 6.1](http://asm.ow2.org/) to build this as a
 dependency in addition to Java 8 and afl build dependencies. Currently
 there is a crude build script to build and test this implementation:
 
-```
+```bash
 $ ./build.sh
 ```
 
@@ -104,8 +108,8 @@ TODO description and more easy to use implementation.
 ## TODO
 
 * Instrument full jar files instead of individual class files.
-  * Include JNI code as part of JavaAfl class file.
-  * Include JavaAfl as part of instrumented .jar file.
+  * Include JavaAfl as part of instrumented .jar file or .class file
+    with main() method.
 * Detect if a class file is already instrumented. This now does
   nothing to prevent double-instrumentation and that leads to
   immediate abort.
