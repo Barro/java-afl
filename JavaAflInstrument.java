@@ -250,9 +250,28 @@ public class JavaAflInstrument
         }
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         ClassVisitor visitor = new InstrumentingClassVisitor(writer);
-        reader.accept(visitor, ClassReader.SKIP_DEBUG);
+        try {
+            reader.accept(visitor, ClassReader.SKIP_DEBUG);
+        } catch (java.lang.TypeNotPresentException e) {
+            System.err.println(
+                "Error while processing " + filename + ": " + e.getMessage());
+            return input;
+        } catch (java.lang.IllegalArgumentException e) {
+            System.err.println(
+                "Error while processing " + filename + ": " + e.getMessage());
+            return input;
+        }
         writer.newUTF8(JavaAfl.INSTRUMENTATION_MARKER);
-        return writer.toByteArray();
+        try {
+            return writer.toByteArray();
+        } catch (java.lang.IndexOutOfBoundsException e) {
+            System.err.println(
+                "Error while processing " + filename + ": " + e.getMessage());
+            // It's possible that the instrumentation makes the method
+            // larger than 64 kilobytes that is the limit that Java
+            // bytecode imposes on methods.
+            return input;
+        }
     }
 
     private static File _instrument_jar(JarFile input, File output) throws IOException
@@ -266,6 +285,7 @@ public class JavaAflInstrument
             InputStream stream = input.getInputStream(entry);
 
             if (entry.isDirectory()) {
+                jar.putNextEntry(new JarEntry(entry));
                 continue;
             }
             byte[] instrumented_class = instrument_class(
