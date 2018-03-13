@@ -168,6 +168,40 @@ public class JavaAflInstrument
         }
     }
 
+    private static byte[] instrument_file(java.io.File input_file, String filename)
+    {
+        ClassReader reader;
+        try {
+            // Work around ClassReader bug on zero length file:
+            if (input_file.length() == 0) {
+                System.err.println("Empty file: " + filename);
+                return null;
+            }
+            reader = new ClassReader(new FileInputStream(input_file));
+        } catch (java.lang.IllegalArgumentException e) {
+            System.err.println(
+                "File " + filename + " is not a valid class file.");
+            return null;
+        } catch (java.io.FileNotFoundException e) {
+            System.err.println(
+                "File " + filename + " is not a valid file: " + e.getMessage());
+            return null;
+        } catch (java.io.IOException e) {
+            System.err.println(
+                "Unable to read class from " + filename + ": " + e.getMessage());
+            return null;
+        }
+        if (is_instrumented(reader)) {
+            System.err.println("Already instrumented " + filename);
+            return null;
+        }
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+        ClassVisitor visitor = new InstrumentingClassVisitor(writer);
+        reader.accept(visitor, ClassReader.SKIP_DEBUG);
+        writer.newUTF8(JavaAfl.INSTRUMENTATION_MARKER);
+        return writer.toByteArray();
+    }
+
     private static boolean is_instrumented(ClassReader reader)
     {
         // It would be sooo much more easy if Java had memmem() like
@@ -201,18 +235,12 @@ public class JavaAflInstrument
         }
 
         for (String filename : args) {
-            ClassReader reader = new ClassReader(
-                new FileInputStream(filename));
-            if (is_instrumented(reader)) {
-                System.err.println("Already instrumented " + filename);
+            byte output[] = instrument_file(
+                new java.io.File(filename), filename);
+            if (output == null) {
                 continue;
             }
-            ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-            ClassVisitor visitor = new InstrumentingClassVisitor(writer);
-            reader.accept(visitor, ClassReader.SKIP_DEBUG);
-            writer.newUTF8(JavaAfl.INSTRUMENTATION_MARKER);
-            byte[] bytes = writer.toByteArray();
-            (new java.io.FileOutputStream(filename)).write(bytes);
+            (new java.io.FileOutputStream(filename)).write(output);
             System.out.println(
                 "Instrumented " + total_locations + " locations: " + filename);
         }
