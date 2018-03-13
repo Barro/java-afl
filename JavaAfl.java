@@ -1,5 +1,8 @@
 public class JavaAfl
 {
+    // This is here so that this class won't be accidentally instrumented.
+    static public final String INSTRUMENTATION_MARKER = "__JAVA-AFL-INSTRUMENTED-CLASSFILE__";
+
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     @java.lang.annotation.Target(java.lang.annotation.ElementType.METHOD)
     public @interface CustomInit {};

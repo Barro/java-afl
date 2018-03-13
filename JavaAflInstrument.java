@@ -15,7 +15,6 @@ import static org.objectweb.asm.Opcodes.*;
 
 public class JavaAflInstrument
 {
-    static private final String INSTRUMENTATION_MARKER = "__JAVA-AFL-INSTRUMENTED-CLASSFILE__";
     static private int total_locations = 0;
 
     static class InstrumentingMethodVisitor extends MethodVisitor
@@ -169,20 +168,24 @@ public class JavaAflInstrument
         }
     }
 
-    private static boolean has_instrumentation(ClassReader reader)
+    private static boolean is_instrumented(ClassReader reader)
     {
         // It would be sooo much more easy if Java had memmem() like
         // function in its standard library...
         int items = reader.getItemCount();
-        byte marker_bytes[] = INSTRUMENTATION_MARKER.getBytes();
+        byte marker_bytes[] = JavaAfl.INSTRUMENTATION_MARKER.getBytes();
         for (int i = 0 ; i < items; i++) {
             int index = reader.getItem(i);
             int item_size = reader.b[index] * 256 + reader.b[index + 1];
             if (item_size != marker_bytes.length) {
                 continue;
             }
-            byte value[] = Arrays.copyOfRange(
-                reader.b, index + 2, index + 2 + marker_bytes.length);
+            int start = index + 2;
+            int end = start + marker_bytes.length;
+            if (reader.b.length < end) {
+                return false;
+            }
+            byte value[] = Arrays.copyOfRange(reader.b, start, end);
             if (Arrays.equals(marker_bytes, value)) {
                 return true;
             }
@@ -200,14 +203,14 @@ public class JavaAflInstrument
         for (String filename : args) {
             ClassReader reader = new ClassReader(
                 new FileInputStream(filename));
-            if (has_instrumentation(reader)) {
+            if (is_instrumented(reader)) {
                 System.err.println("Already instrumented " + filename);
                 continue;
             }
             ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
             ClassVisitor visitor = new InstrumentingClassVisitor(writer);
             reader.accept(visitor, ClassReader.SKIP_DEBUG);
-            writer.newUTF8(INSTRUMENTATION_MARKER);
+            writer.newUTF8(JavaAfl.INSTRUMENTATION_MARKER);
             byte[] bytes = writer.toByteArray();
             (new java.io.FileOutputStream(filename)).write(bytes);
             System.out.println(
