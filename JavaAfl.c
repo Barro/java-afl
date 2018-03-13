@@ -25,6 +25,7 @@ static void* g_zero_area = NULL;
 static jfieldID g_map_field_id = NULL;
 static jobject g_map_field = NULL;
 static bool g_is_persistent = false;
+static bool g_initialized = false;
 
 static void init_map_field(JNIEnv *env, jclass cls)
 {
@@ -50,8 +51,7 @@ JNIEXPORT jint JNICALL Java_JavaAfl__1get_1map_1size
 JNIEXPORT void JNICALL Java_JavaAfl__1init_1impl
   (JNIEnv * env, jclass cls, jboolean is_persistent)
 {
-    static bool initialized = false;
-    if (initialized) {
+    if (g_initialized) {
         fprintf(
             stderr,
             "Tried to initialize java-afl twice! "
@@ -135,7 +135,7 @@ JNIEXPORT void JNICALL Java_JavaAfl__1init_1impl
     }
 
     g_is_persistent = is_persistent;
-    initialized = true;
+    g_initialized = true;
 
     const char* afl_shm_id = getenv(SHM_ENV_VAR);
     if (afl_shm_id == NULL) {
@@ -193,6 +193,9 @@ JNIEXPORT void JNICALL Java_JavaAfl__1after_1main
 JNIEXPORT void JNICALL Java_JavaAfl__1handle_1uncaught_1exception
   (JNIEnv * env, jclass cls)
 {
+    if (!g_initialized) {
+        return;
+    }
     send_map(env, cls);
     kill(getpid(), SIGUSR1);
 }
