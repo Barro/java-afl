@@ -1,7 +1,18 @@
+import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.Random;
+import java.util.jar.JarInputStream;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.jar.JarOutputStream;
+
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.AnnotationVisitor;
@@ -16,6 +27,8 @@ import static org.objectweb.asm.Opcodes.*;
 public class JavaAflInstrument
 {
     static private int total_locations = 0;
+    static private int total_jarfiles = 0;
+    static private int total_classfiles = 0;
 
     static class InstrumentingMethodVisitor extends MethodVisitor
     {
@@ -168,40 +181,6 @@ public class JavaAflInstrument
         }
     }
 
-    private static byte[] instrument_file(java.io.File input_file, String filename)
-    {
-        ClassReader reader;
-        try {
-            // Work around ClassReader bug on zero length file:
-            if (input_file.length() == 0) {
-                System.err.println("Empty file: " + filename);
-                return null;
-            }
-            reader = new ClassReader(new FileInputStream(input_file));
-        } catch (java.lang.IllegalArgumentException e) {
-            System.err.println(
-                "File " + filename + " is not a valid class file.");
-            return null;
-        } catch (java.io.FileNotFoundException e) {
-            System.err.println(
-                "File " + filename + " is not a valid file: " + e.getMessage());
-            return null;
-        } catch (java.io.IOException e) {
-            System.err.println(
-                "Unable to read class from " + filename + ": " + e.getMessage());
-            return null;
-        }
-        if (is_instrumented(reader)) {
-            System.err.println("Already instrumented " + filename);
-            return null;
-        }
-        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-        ClassVisitor visitor = new InstrumentingClassVisitor(writer);
-        reader.accept(visitor, ClassReader.SKIP_DEBUG);
-        writer.newUTF8(JavaAfl.INSTRUMENTATION_MARKER);
-        return writer.toByteArray();
-    }
-
     private static boolean is_instrumented(ClassReader reader)
     {
         // It would be sooo much more easy if Java had memmem() like
@@ -227,22 +206,193 @@ public class JavaAflInstrument
         return false;
     }
 
+    private static void instrument_classfile(File output_dir, String filename)
+    {
+        File source_file = new File(filename);
+        File output_target_file = new File(output_dir, source_file.getName());
+        byte[] input_data = new byte[(int)source_file.length()];
+        try {
+            FileInputStream input_stream = new FileInputStream(source_file);
+            int read = input_stream.read(input_data);
+            if (read != input_data.length) {
+                System.err.println("Unable to fully read " + filename);
+            }
+            byte[] output = instrument_class(input_data, filename);
+            (new FileOutputStream(output_target_file)).write(output);
+            total_classfiles++;
+        } catch (IOException e) {
+            System.err.println("Unable to instrument " + filename);
+        }
+    }
+
+    private static byte[] instrument_class(byte[] input, String filename)
+    {
+        if (!filename.endsWith(".class")) {
+            return input;
+        }
+        // Work around ClassReader bug on zero length file:
+        if (input.length == 0) {
+            System.err.println("Empty file: " + filename);
+            return input;
+        }
+        ClassReader reader;
+        try {
+            reader = new ClassReader(input);
+        } catch (java.lang.IllegalArgumentException e) {
+            System.err.println(
+                "File " + filename + " is not a valid class file.");
+            return input;
+        }
+        if (is_instrumented(reader)) {
+            System.err.println("Already instrumented " + filename);
+            total_classfiles--;
+            return input;
+        }
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+        ClassVisitor visitor = new InstrumentingClassVisitor(writer);
+        reader.accept(visitor, ClassReader.SKIP_DEBUG);
+        writer.newUTF8(JavaAfl.INSTRUMENTATION_MARKER);
+        return writer.toByteArray();
+    }
+
+    private static File _instrument_jar(JarFile input, File output) throws IOException
+    {
+        FileOutputStream output_jarfile = new FileOutputStream(output);
+        JarOutputStream jar = new JarOutputStream(output_jarfile);
+        Enumeration<? extends JarEntry> entries = input.entries();
+
+        while (entries.hasMoreElements()) {
+            JarEntry entry = entries.nextElement();
+            InputStream stream = input.getInputStream(entry);
+
+            if (entry.isDirectory()) {
+                continue;
+            }
+            byte[] instrumented_class = instrument_class(
+                input_stream_to_bytes(stream),
+                input.getName() + "/" + entry.getName());
+            jar.putNextEntry(new JarEntry(entry.getName()));
+            if (instrumented_class == null) {
+                jar.write(input_stream_to_bytes(stream));
+            } else {
+                jar.write(instrumented_class);
+            }
+        }
+        add_JavaAfl_to_jar(jar);
+        jar.close();
+        return output;
+    }
+
+    private static void _instrument_file(
+        File output_dir, String filename)
+    {
+        if (filename.endsWith(".class")) {
+            instrument_classfile(output_dir, filename);
+            return;
+        }
+        File source_file = new File(filename);
+        File physical_output = null;
+        File rename_target = new File(output_dir, source_file.getName());
+        try {
+            JarFile jar_input = new JarFile(source_file, false);
+            physical_output = File.createTempFile(
+                ".java-afl-new-", ".jar", output_dir);
+            _instrument_jar(jar_input, physical_output);
+            physical_output.renameTo(rename_target);
+            total_jarfiles++;
+        } catch (java.io.FileNotFoundException e) {
+            System.err.println(
+                "File " + filename + " is not a valid file: " + e.getMessage());
+        } catch (IOException e) {
+            if (physical_output != null) {
+                physical_output.delete();
+            }
+            System.err.println("Failed to read jar " + filename + ": " + e.getMessage());
+        }
+    }
+
+    private static byte[] input_stream_to_bytes(InputStream stream)
+    {
+        ByteArrayOutputStream bytestream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[4096];
+        try {
+            int read = stream.read(buffer);
+            while (read > 0) {
+                bytestream.write(buffer, 0, read);
+                read = stream.read(buffer);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return bytestream.toByteArray();
+    }
+
+    private static void add_JavaAfl_to_jar(JarOutputStream jar)
+    {
+        String[] filenames = {
+            "JavaAfl.class",
+            "JavaAfl$CustomInit.class",
+            "JavaAfl$Handler.class"
+        };
+        try {
+            for (String filename : filenames) {
+                jar.putNextEntry(new JarEntry(filename));
+                jar.write(
+                    input_stream_to_bytes(
+                        (InputStream)JavaAflInstrument.class.getResource(filename).getContent()));
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void add_JavaAfl_to_directory(File directory)
+    {
+        String[] filenames = {
+            "JavaAfl.class",
+            "JavaAfl$CustomInit.class",
+            "JavaAfl$Handler.class"
+        };
+        try {
+            for (String filename : filenames) {
+                FileOutputStream output = new FileOutputStream(
+                    new File(directory, filename));
+                output.write(
+                    input_stream_to_bytes(
+                        (InputStream)JavaAflInstrument.class.getResource(filename).getContent()));
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static void main(String args[]) throws IOException
     {
-        if (args.length < 1) {
-            System.err.println("Usage: instrumentor classfile...");
+        if (args.length < 2) {
+            System.err.println("Usage: instrumentor output-dir input.jar|input.class...");
             return;
         }
 
-        for (String filename : args) {
-            byte output[] = instrument_file(
-                new java.io.File(filename), filename);
-            if (output == null) {
-                continue;
+        File output_dir = new File(args[0]);
+        if (!output_dir.exists()) {
+            if (!output_dir.mkdirs()) {
+                System.err.println("Unable to create output directory!");
+                return;
             }
-            (new java.io.FileOutputStream(filename)).write(output);
-            System.out.println(
-                "Instrumented " + total_locations + " locations: " + filename);
         }
+        if (!output_dir.isDirectory()) {
+            System.err.println("Output directory " + output_dir + " is not a directory!");
+            return;
+        }
+        for (int i = 1; i < args.length; i++) {
+            _instrument_file(output_dir, args[i]);
+        }
+        if (total_classfiles > 0) {
+            add_JavaAfl_to_directory(output_dir);
+        }
+        System.out.println(
+            "Output files are available at " + output_dir.getCanonicalPath());
+        System.out.println(
+            "Instrumented " + total_classfiles + " .class files and " + total_jarfiles + " .jar files.");
     }
 }

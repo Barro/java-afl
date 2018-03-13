@@ -22,7 +22,7 @@ Performance on Intel Core i7-3770K CPU @ 3.50GHz:
 
 ## Usage
 
-TODO description and easy to more use implementation.
+TODO more description
 
 This works by instrumenting the compiled Java bytecode with
 probabilistic program coverage revealing instrumentation. The default
@@ -36,8 +36,8 @@ Instrumentation is done by running JavaAflInstrument program for each
 class file to instrument:
 
 ```bash
-$ export CLASSPATH=asm-6.1.jar:out/
-$ java JavaAflInstrument out/ClassToInstrument.class
+$ java -jar java-afl-instrument.jar instrumented/ ClassToTest.class
+$ java -jar java-afl-instrument.jar instrumented/ jar-to-test.jar
 ```
 
 This actually injects native JNI code into the used class files, so
@@ -84,7 +84,8 @@ memory, so default virtual memory limits of afl-fuzz need to be set
 higher (`-m 20000`).
 
 ```bash
-$ java-afl-fuzz -m 20000 -i in/ -o out/ -- java ClassToInstrument
+$ java-afl-fuzz -m 20000 -i in/ -o out/ -- java -cp instrumented/ ClassToTest
+$ java-afl-fuzz -m 20000 -i in/ -o out/ -- java -jar instrumented/jar-to-test.jar
 ```
 
 You may want to adjust maximum heap size with
@@ -107,9 +108,6 @@ TODO description and more easy to use implementation.
 
 ## TODO
 
-* Instrument full jar files instead of individual class files.
-  * Include JavaAfl as part of instrumented .jar file or .class file
-    with main() method.
 * Better way to build this. Multiple different build tools are
   probably a must.
 * Alternative method implementations based on fuzzing mode (similar to
