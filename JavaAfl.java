@@ -10,6 +10,8 @@ public class JavaAfl
     static class Handler implements Thread.UncaughtExceptionHandler {
         public void uncaughtException(Thread t, Throwable e) {
             JavaAfl._handle_uncaught_exception();
+            e.printStackTrace(System.err);
+            System.exit(1);
         }
     }
 

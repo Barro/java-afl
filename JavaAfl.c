@@ -193,7 +193,7 @@ JNIEXPORT void JNICALL Java_JavaAfl__1after_1main
 JNIEXPORT void JNICALL Java_JavaAfl__1handle_1uncaught_1exception
   (JNIEnv * env, jclass cls)
 {
-    if (!g_initialized) {
+    if (g_afl_area == (void*)-1) {
         return;
     }
     send_map(env, cls);
