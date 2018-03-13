@@ -53,7 +53,11 @@ public class JavaAflInject
         long library_size = library.length();
         byte library_data[] = new byte[(int)library_size];
         (new FileInputStream(library)).read(library_data);
-        String jni_data = new String(library_data, "ISO-8859-1");
+        java.io.ByteArrayOutputStream data_output = new java.io.ByteArrayOutputStream();
+        java.util.zip.GZIPOutputStream gzip = new java.util.zip.GZIPOutputStream(data_output);
+        gzip.write(library_data, 0, library_data.length);
+        gzip.finish();
+        String jni_data = data_output.toString("ISO-8859-1");
         ClassReader reader = new InjectingReader(
             new FileInputStream(class_filename), jni_data);
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);

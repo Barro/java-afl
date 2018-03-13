@@ -22,14 +22,26 @@ public class JavaAfl
 
     // If you change the string value of this, you also need to change
     // the corresponding value at JavaAflInject.java file!
+    // This enables only passing 64 kilobytes of data. It is more than
+    // enough with the help of gzip compression on Linux even when
+    // there is tons of debugging data added to the resulting JNI
+    // library.
     private final static String _jni_code = "<INJECT-JNI>";
 
     static {
         java.io.File jni_target = null;
         try {
-            byte jni_code[] = _jni_code.getBytes("ISO-8859-1");
+            byte jni_code_compressed[] = _jni_code.getBytes("ISO-8859-1");
+            java.util.zip.GZIPInputStream input = new java.util.zip.GZIPInputStream(
+                new java.io.ByteArrayInputStream(jni_code_compressed));
             jni_target = java.io.File.createTempFile("libjava-afl-", ".so");
-            (new java.io.FileOutputStream(jni_target)).write(jni_code);
+            java.io.FileOutputStream output = new java.io.FileOutputStream(jni_target);
+            byte buffer[] = new byte[4096];
+            int read = input.read(buffer, 0, buffer.length);
+            while (read > 0) {
+                output.write(buffer, 0, read);
+                read = input.read(buffer, 0, buffer.length);
+            }
             System.load(jni_target.getAbsolutePath());
         } catch (java.io.IOException e) {
             new RuntimeException(e);
