@@ -108,6 +108,8 @@ TODO description and more easy to use implementation.
 
 ## TODO
 
+* Support deferred init for arbitrary given method without source code
+  modifications.
 * Better way to build this. Multiple different build tools are
   probably a must.
 * Alternative method implementations based on fuzzing mode (similar to
