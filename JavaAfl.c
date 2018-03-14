@@ -202,7 +202,7 @@ JNIEXPORT void JNICALL Java_JavaAfl__1handle_1uncaught_1exception
         return;
     }
     send_map(env, cls);
-    kill(getpid(), SIGUSR1);
+    abort();
 }
 
 JNIEXPORT void JNICALL Java_JavaAfl__1send_1map
