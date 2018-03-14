@@ -177,6 +177,11 @@ static void send_map(JNIEnv * env, jclass cls)
 JNIEXPORT void JNICALL Java_JavaAfl__1after_1main
   (JNIEnv * env, jclass cls)
 {
+    // Do nothing if we're not running inside something that can read
+    // maps. This makes Java exit handlers to run properly.
+    if (g_afl_area == (void*)-1) {
+        return;
+    }
     // In persistent mode JavaAfl.loop() does the final map update for
     // us. Doing map updates after the main loop leads into
     // instability, as there are map updates in the code after that.
