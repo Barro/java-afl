@@ -1,8 +1,10 @@
+package test;
+
 import java.util.HashMap;
 
-public class TestPersistent
+public class Persistent
 {
-    @JavaAfl.CustomInit
+    @javafl.CustomInit
     public static void main(String[] args) throws java.io.IOException
     {
         HashMap<Byte, Integer> values = new HashMap<Byte, Integer>();
@@ -12,7 +14,7 @@ public class TestPersistent
         }
         byte[] data = new byte[128];
         int read = 128;
-        while (JavaAfl.loop(100000)) {
+        while (javafl.JavaAfl.loop(100000)) {
             if (args.length >= 1) {
                 read = (new java.io.FileInputStream(args[0])).read(data, 0, data.length);
             } else {
@@ -20,7 +22,7 @@ public class TestPersistent
                 // Throw away all buffering information from stdin:
                 System.in.skip(9999999);
             }
-            TestUtils.fuzz_one(data, read, values);
+            test.Utils.fuzz_one(data, read, values);
         }
     }
 }

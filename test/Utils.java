@@ -1,6 +1,8 @@
+package test;
+
 import java.util.HashMap;
 
-public class TestUtils
+public class Utils
 {
     static public void fuzz_one(byte[] data, int size, HashMap<Byte, Integer> values)
     {

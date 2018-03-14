@@ -1,3 +1,5 @@
+package javafl;
+
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -47,13 +49,13 @@ public class JavaAflInstrument
         private void _aflMaybeLog()
         {
             JavaAflInstrument.total_locations++;
-            int location_id = _random.nextInt(JavaAfl.map.length);
+            int location_id = _random.nextInt(javafl.JavaAfl.map.length);
             // + &JavaAfl.map
-            mv.visitFieldInsn(GETSTATIC, "JavaAfl", "map", "[B");
+            mv.visitFieldInsn(GETSTATIC, "javafl/JavaAfl", "map", "[B");
             // + location_id
             mv.visitLdcInsn(location_id);
             // + JavaAfl.prev_location
-            mv.visitFieldInsn(GETSTATIC, "JavaAfl", "prev_location", "I");
+            mv.visitFieldInsn(GETSTATIC, "javafl/JavaAfl", "prev_location", "I");
             // - 2 values (location_id, prev_location)
             // + location_id ^ prev_location -> tuple_index
             mv.visitInsn(IXOR);
@@ -78,7 +80,7 @@ public class JavaAflInstrument
             // + location_id >> 1 = shifted_location
             mv.visitLdcInsn(location_id >> 1);
             // - 1 value (shifted_location)
-            mv.visitFieldInsn(PUTSTATIC, "JavaAfl", "prev_location", "I");
+            mv.visitFieldInsn(PUTSTATIC, "javafl/JavaAfl", "prev_location", "I");
         }
 
         @Override
@@ -88,7 +90,7 @@ public class JavaAflInstrument
             if (_is_main && !_has_custom_init) {
                 mv.visitMethodInsn(
                     INVOKESTATIC,
-                    "JavaAfl",
+                    "javafl/JavaAfl",
                     "_before_main",
                     "()V",
                     false);
@@ -116,7 +118,7 @@ public class JavaAflInstrument
             if (_is_main && opcode == RETURN) {
                 mv.visitMethodInsn(
                     INVOKESTATIC,
-                    "JavaAfl",
+                    "javafl/JavaAfl",
                     "_after_main",
                     "()V",
                     false);
@@ -129,7 +131,7 @@ public class JavaAflInstrument
         {
             // TODO it should be possible to also get the full class
             // descriptor name out during the compilation time...
-            if (desc.equals("L" + JavaAfl.CustomInit.class.getName() + ";")) {
+            if (desc.equals("L" + javafl.CustomInit.class.getName() + ";")) {
                 _has_custom_init = true;
             }
             return null;
@@ -164,12 +166,12 @@ public class JavaAflInstrument
             int public_static = Opcodes.ACC_STATIC | Opcodes.ACC_PUBLIC;
             if (name.equals("main") && ((access & public_static) != 0)) {
                 _writer.newMethod(
-                    "JavaAfl",
+                    "javafl/JavaAfl",
                     "_before_main",
                     "()V",
                     false);
                 _writer.newMethod(
-                    "JavaAfl",
+                    "javafl/JavaAfl",
                     "_after_main",
                     "()V",
                     false);
@@ -186,7 +188,7 @@ public class JavaAflInstrument
         // It would be sooo much more easy if Java had memmem() like
         // function in its standard library...
         int items = reader.getItemCount();
-        byte marker_bytes[] = JavaAfl.INSTRUMENTATION_MARKER.getBytes();
+        byte marker_bytes[] = javafl.JavaAfl.INSTRUMENTATION_MARKER.getBytes();
         for (int i = 0 ; i < items; i++) {
             int index = reader.getItem(i);
             int item_size = reader.b[index] * 256 + reader.b[index + 1];
@@ -261,7 +263,7 @@ public class JavaAflInstrument
                 "Error while processing " + filename + ": " + e.getMessage());
             return input;
         }
-        writer.newUTF8(JavaAfl.INSTRUMENTATION_MARKER);
+        writer.newUTF8(javafl.JavaAfl.INSTRUMENTATION_MARKER);
         try {
             return writer.toByteArray();
         } catch (java.lang.IndexOutOfBoundsException e) {
@@ -350,16 +352,16 @@ public class JavaAflInstrument
     private static void add_JavaAfl_to_jar(JarOutputStream jar)
     {
         String[] filenames = {
-            "JavaAfl.class",
-            "JavaAfl$CustomInit.class",
-            "JavaAfl$Handler.class"
+            "javafl/JavaAfl.class",
+            "javafl/CustomInit.class"
         };
         try {
+            jar.putNextEntry(new JarEntry("javafl/"));
             for (String filename : filenames) {
                 jar.putNextEntry(new JarEntry(filename));
                 jar.write(
                     input_stream_to_bytes(
-                        (InputStream)JavaAflInstrument.class.getResource(filename).getContent()));
+                        (InputStream)JavaAflInstrument.class.getResource("/" + filename).getContent()));
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -369,17 +371,20 @@ public class JavaAflInstrument
     private static void add_JavaAfl_to_directory(File directory)
     {
         String[] filenames = {
-            "JavaAfl.class",
-            "JavaAfl$CustomInit.class",
-            "JavaAfl$Handler.class"
+            "javafl/JavaAfl.class",
+            "javafl/CustomInit.class"
         };
         try {
             for (String filename : filenames) {
-                FileOutputStream output = new FileOutputStream(
-                    new File(directory, filename));
+                File target = new File(directory, filename);
+                File class_directory = target.getParentFile();
+                if (!class_directory.exists()) {
+                    class_directory.mkdirs();
+                }
+                FileOutputStream output = new FileOutputStream(target);
                 output.write(
                     input_stream_to_bytes(
-                        (InputStream)JavaAflInstrument.class.getResource(filename).getContent()));
+                        (InputStream)JavaAflInstrument.class.getResource("/" + filename).getContent()));
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

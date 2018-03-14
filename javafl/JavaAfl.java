@@ -1,18 +1,14 @@
-public class JavaAfl
+package javafl;
+
+public class JavaAfl implements Thread.UncaughtExceptionHandler
 {
     // This is here so that this class won't be accidentally instrumented.
     static public final String INSTRUMENTATION_MARKER = "__JAVA-AFL-INSTRUMENTED-CLASSFILE__";
 
-    @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
-    @java.lang.annotation.Target(java.lang.annotation.ElementType.METHOD)
-    public @interface CustomInit {};
-
-    static class Handler implements Thread.UncaughtExceptionHandler {
-        public void uncaughtException(Thread t, Throwable e) {
-            JavaAfl._handle_uncaught_exception();
-            e.printStackTrace(System.err);
-            System.exit(1);
-        }
+    public void uncaughtException(Thread t, Throwable e) {
+        javafl.JavaAfl._handle_uncaught_exception();
+        e.printStackTrace(System.err);
+        System.exit(1);
     }
 
     // Map size link between C code Java:
@@ -61,13 +57,13 @@ public class JavaAfl
 
     static public void _before_main()
     {
-        JavaAfl._init(false);
+        javafl.JavaAfl._init(false);
     }
 
     static private void _init(boolean is_persistent)
     {
         _init_impl(is_persistent);
-        Handler handler = new Handler();
+        JavaAfl handler = new JavaAfl();
         Thread.setDefaultUncaughtExceptionHandler(handler);
     }
 
@@ -78,7 +74,7 @@ public class JavaAfl
     static private native void _send_map();
 
     // Function to use in the deferred mode in combination
-    // with @JavaAfl.CustomInit annotation:
+    // with @javafl.CustomInit annotation:
     static public void init()
     {
         _init(false);

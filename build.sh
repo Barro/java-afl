@@ -25,7 +25,7 @@ if [[ ! -f asm-6.1.jar ]]; then
     exit 1
 fi
 
-mkdir -p out/ins
+mkdir -p out/ins out/test out/javafl
 # TODO this is a crude script that enables testing everything by
 # hand. Add more builder choices...
 JNI_PATHS=(
@@ -33,72 +33,46 @@ JNI_PATHS=(
     -I/usr/lib/jvm/java-8-openjdk-amd64/include
     -I/usr/lib/jvm/java-8-openjdk-amd64/include/linux)
 CLASSPATH=asm-6.1.jar:out
-javac -cp "$CLASSPATH" -d out JavaAfl.java
-javac -cp "$CLASSPATH" -d out JavaAflInstrument.java
-javah -cp "$CLASSPATH" -d out -jni JavaAfl
+javac -cp "$CLASSPATH" -d out javafl/CustomInit.java
+javac -cp "$CLASSPATH" -d out javafl/JavaAfl.java
+javac -cp "$CLASSPATH" -d out javafl/JavaAflInstrument.java
+javah -cp "$CLASSPATH" -d out -jni javafl.JavaAfl
 cc -Os -shared -Wl,-soname,libjava-afl.so -o out/libjava-afl.so -fPIC "${JNI_PATHS[@]}" JavaAfl.c
-javac -cp "$CLASSPATH" -d out JavaAflInject.java
-java -cp "$CLASSPATH" JavaAflInject out/JavaAfl.class out/libjava-afl.so
+javac -cp "$CLASSPATH" -d out javafl/JavaAflInject.java
+java -cp "$CLASSPATH" javafl.JavaAflInject out/javafl/JavaAfl.class out/libjava-afl.so
 
 (
     set -euo pipefail
-    mkdir -p out/full
-    cp out/JavaAfl.class out/full/
-    cp out/JavaAfl\$*.class out/full/
-    cp out/JavaAflInstrument.class out/full/
-    cp out/JavaAflInstrument\$*.class out/full/
-    cd out/full
+    mkdir -p out/full/javafl
+    cp out/javafl/JavaAfl.class out/full/javafl/
+    cp out/javafl/CustomInit.class out/full/javafl/
+    cp out/javafl/JavaAflInstrument.class out/full/javafl/
+    cp out/javafl/JavaAflInstrument\$*.class out/full/javafl/
+    cd out/full/
     jar xf "$DIR"/asm-6.1.jar
 )
 # Put everything that we need into one file:
-jar -cfe "$DIR"/java-afl-instrument.jar JavaAflInstrument -C out/full .
+jar -cfe "$DIR"/java-afl-instrument.jar javafl.JavaAflInstrument -C out/full .
 
 # Test classes and jarfile
-javac -d out TestUtils.java
-javac -d out TestForking.java
-javac -d out TestDeferred.java
-javac -d out TestPersistent.java
-javac -d out TestNull.java
+javac -d out/ test/Utils.java
+javac -d out/ test/Forking.java
+javac -d out/ test/Deferred.java
+javac -d out/ test/Persistent.java
+javac -d out/ test/Null.java
 (
     set -euo pipefail
     cd out
-    jar cfe test.jar TestForking TestUtils.class TestForking.class
+    jar cfe test.jar test.Forking test/Utils.class test/Forking.class
 )
 
 java -jar java-afl-instrument.jar \
      out/ins \
-     out/test.jar \
-     out/TestUtils.class \
-     out/TestForking.class \
-     out/TestDeferred.class \
-     out/TestPersistent.class \
-     out/TestNull.class
-
-# Test that jarfile instrumentation works without issues.
-./java-afl-showmap -m 30000 -o out/tuples-forking.txt -- java -jar out/ins/test.jar < in/a.txt
-tuples_forking=$(wc -l < out/tuples-forking.txt)
-if [[ "$tuples_forking" -lt 6 ]]; then
-    echo >&2 "Failed to generate enough tuples in forking implementation!"
-    exit 1
-fi
-
-./java-afl-showmap -m 30000 -o out/tuples-forking.txt -- java -cp out/ins TestForking < in/a.txt
-tuples_forking=$(wc -l < out/tuples-forking.txt)
-if [[ "$tuples_forking" -lt 6 ]]; then
-    echo >&2 "Failed to generate enough tuples in forking implementation!"
-    exit 1
-fi
-
-./java-afl-showmap -m 30000 -o out/tuples-deferred.txt -- java -cp out/ins TestDeferred < in/a.txt
-tuples_deferred=$(wc -l < out/tuples-deferred.txt)
-if [[ "$tuples_deferred" -lt 6 ]]; then
-    echo >&2 "Failed to generate enough tuples in deferred implementation!"
-    exit 1
-fi
-
-./java-afl-showmap -m 30000 -o out/tuples-persistent.txt -- java -cp out/ins TestPersistent < in/a.txt
-tuples_persistent=$(wc -l < out/tuples-persistent.txt)
-if [[ "$tuples_persistent" -lt 6 ]]; then
-    echo >&2 "Failed to generate enough tuples in persistent implementation!"
-    exit 1
-fi
+     out/test.jar
+java -jar java-afl-instrument.jar \
+     out/ins/test \
+     out/test/Utils.class \
+     out/test/Forking.class \
+     out/test/Deferred.class \
+     out/test/Persistent.class \
+     out/test/Null.class

@@ -1,6 +1,8 @@
+package test;
+
 import java.util.HashMap;
 
-public class TestForking
+public class Forking
 {
     public static void main(String[] args) throws java.io.IOException
     {
@@ -16,6 +18,6 @@ public class TestForking
         } else {
             read = System.in.read(data, 0, data.length);
         }
-        TestUtils.fuzz_one(data, read, values);
+        test.Utils.fuzz_one(data, read, values);
     }
 }

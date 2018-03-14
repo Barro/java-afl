@@ -1,8 +1,10 @@
+package test;
+
 import java.util.HashMap;
 
-public class TestDeferred
+public class Deferred
 {
-    @JavaAfl.CustomInit
+    @javafl.CustomInit
     public static void main(String[] args) throws java.io.IOException
     {
         HashMap<Byte, Integer> values = new HashMap<Byte, Integer>();
@@ -12,12 +14,12 @@ public class TestDeferred
         }
         byte[] data = new byte[128];
         int read = 128;
-        JavaAfl.init();
+        javafl.JavaAfl.init();
         if (args.length >= 1) {
             read = (new java.io.FileInputStream(args[0])).read(data, 0, data.length);
         } else {
             read = System.in.read(data, 0, data.length);
         }
-        TestUtils.fuzz_one(data, read, values);
+        test.Utils.fuzz_one(data, read, values);
     }
 }

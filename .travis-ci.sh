@@ -15,3 +15,4 @@ export PATH=$INSTALL_DIR/bin:$PATH
 cd "$DIR"
 
 ./build.sh
+./test.sh

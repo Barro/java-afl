@@ -1,3 +1,5 @@
+package javafl;
+
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import java.io.File;
@@ -43,7 +45,7 @@ public class JavaAflInject
     public static void main(String args[]) throws IOException
     {
         if (args.length != 2) {
-            System.err.println("Usage: JavaAflInject JavaAfl.class libjava-afl.so");
+            System.err.println("Usage: JavaAflInject javafl/JavaAfl.class libjava-afl.so");
             return;
         }
 

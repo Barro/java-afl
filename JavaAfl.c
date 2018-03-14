@@ -8,7 +8,7 @@
 #include <string.h>
 #include <sys/wait.h>
 
-#include <JavaAfl.h>
+#include <javafl_JavaAfl.h>
 
 // These constants must be kept in sync with afl-fuzz:
 #ifndef MAP_SIZE
@@ -42,13 +42,13 @@ static jobject get_map_field(JNIEnv *env, jclass cls)
     return (*env)->GetStaticObjectField(env, cls, g_map_field_id);
 }
 
-JNIEXPORT jint JNICALL Java_JavaAfl__1get_1map_1size
+JNIEXPORT jint JNICALL Java_javafl_JavaAfl__1get_1map_1size
   (JNIEnv * env, jclass cls)
 {
     return MAP_SIZE;
 }
 
-JNIEXPORT void JNICALL Java_JavaAfl__1init_1impl
+JNIEXPORT void JNICALL Java_javafl_JavaAfl__1init_1impl
   (JNIEnv * env, jclass cls, jboolean is_persistent)
 {
     if (g_initialized) {
@@ -56,7 +56,7 @@ JNIEXPORT void JNICALL Java_JavaAfl__1init_1impl
             stderr,
             "Tried to initialize java-afl twice! "
             "If you are using deferred or persistent mode, remember to "
-            "annotate your main() function with @JavaAfl.CustomInit!\n"
+            "annotate your main() function with @javafl.CustomInit!\n"
             );
         abort();
     }
@@ -174,7 +174,7 @@ static void send_map(JNIEnv * env, jclass cls)
     }
 }
 
-JNIEXPORT void JNICALL Java_JavaAfl__1after_1main
+JNIEXPORT void JNICALL Java_javafl_JavaAfl__1after_1main
   (JNIEnv * env, jclass cls)
 {
     // Do nothing if we're not running inside something that can read
@@ -182,7 +182,7 @@ JNIEXPORT void JNICALL Java_JavaAfl__1after_1main
     if (g_afl_area == (void*)-1) {
         return;
     }
-    // In persistent mode JavaAfl.loop() does the final map update for
+    // In persistent mode javafl.JavaAfl.loop() does the final map update for
     // us. Doing map updates after the main loop leads into
     // instability, as there are map updates in the code after that.
     // TODO rethink this approach, as there is quite a lot of ifs
@@ -195,7 +195,7 @@ JNIEXPORT void JNICALL Java_JavaAfl__1after_1main
     _Exit(0);
 }
 
-JNIEXPORT void JNICALL Java_JavaAfl__1handle_1uncaught_1exception
+JNIEXPORT void JNICALL Java_javafl_JavaAfl__1handle_1uncaught_1exception
   (JNIEnv * env, jclass cls)
 {
     if (g_afl_area == (void*)-1) {
@@ -205,7 +205,7 @@ JNIEXPORT void JNICALL Java_JavaAfl__1handle_1uncaught_1exception
     abort();
 }
 
-JNIEXPORT void JNICALL Java_JavaAfl__1send_1map
+JNIEXPORT void JNICALL Java_javafl_JavaAfl__1send_1map
   (JNIEnv * env, jclass cls)
 {
     send_map(env, cls);

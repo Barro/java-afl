@@ -32,7 +32,7 @@ server and persistent modes that enable you to skip some
 initialization code and keep the JVM running longer than for just one
 input.
 
-Instrumentation is done by running JavaAflInstrument program for each
+Instrumentation is done by running instrumentation program for each
 class file to instrument:
 
 ```bash
@@ -49,12 +49,12 @@ the `main()` function:
 
 ```java
 public class ProgramPersistent {
-    @JavaAfl.CustomInit
+    @javafl.CustomInit
     public static void main(String args[]) {
         ...
         byte[] data = new byte[128];
         int read = 128;
-        while (JavaAfl.loop(100000)) {
+        while (javafl.JavaAfl.loop(100000)) {
             read = System.in.read(data, 0, data.length);
             // Throw away all buffering information from stdin for the
             // next iteration:
@@ -70,10 +70,10 @@ Deferred mode does not need that many tricks as the persistent mode:
 
 ```java
 public class ProgramPersistent {
-    @JavaAfl.CustomInit
+    @javafl.CustomInit
     public static void main(String args[]) {
         ...
-        JavaAfl.init();
+        javafl.JavaAfl.init();
         ... do actual input processing...
     }
 }
@@ -108,8 +108,7 @@ TODO description and more easy to use implementation.
 
 ## TODO
 
-* Apparently Java does not support imports from the default namespace
-  even if instrumentation is happy with it.
+* Take care of package name in instrumenting outputs.
 * Support deferred init for arbitrary given method without source code
   modifications.
 * Better way to build this. Multiple different build tools are
