@@ -108,6 +108,8 @@ TODO description and more easy to use implementation.
 
 ## TODO
 
+* Apparently Java does not support imports from the default namespace
+  even if instrumentation is happy with it.
 * Support deferred init for arbitrary given method without source code
   modifications.
 * Better way to build this. Multiple different build tools are
