@@ -4,6 +4,7 @@ set -euo pipefail
 
 export AFL_SKIP_CPUFREQ=1
 export AFL_NO_UI=1
+export AFL_NO_AFFINITY=1
 
 rm -rf out/fuzz-forking
 timeout --preserve-status -s INT 15 ./java-afl-fuzz -m 30000 -i in/ -o out/fuzz-forking -- java -cp out/ins test.Forking
