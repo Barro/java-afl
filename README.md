@@ -1,24 +1,6 @@
 This is a fork server based approach to fuzz Java applications on Java
-virtual machine with [american fuzzy lop](http://lcamtuf.coredump.cx/afl/).
-
-Tested with:
-
-* afl 2.52b
-* OpenJDK 1.8.0_151
-
-Performance on Intel Core i7-3770K CPU @ 3.50GHz:
-
-* Fork server mode around 750 executions/second for a program that
-  does nothing. Closer to 300 when there is actually something
-  happening.
-* Deferred mode naturally gets something between the fork server mode
-  and persistent mode. Depends how heavy the initialization is,
-  probably maybe some tens of percents.
-* Persistent mode around 14000 executions/second. Highly depends on
-  how much and how long JVM is able to optimize before being
-  killed. Around 31000 iterations/second for an empty while loop, that
-  is close to the maximum that native C code can handle with afl-fuzz
-  in persistent mode.
+virtual machine with
+[american fuzzy lop](http://lcamtuf.coredump.cx/afl/).
 
 ## Usage
 
@@ -51,21 +33,23 @@ can be done with this type of command with the provided
 `java-afl-fuzz` wrapper script:
 
 ```bash
-$ java-afl-fuzz -m 20000 -i in/ -o out/ -- java -cp instrumented/ ClassToTest
-$ java-afl-fuzz -m 20000 -i in/ -o out/ -- java -jar instrumented/jar-to-test.jar
+$ java-afl-fuzz -m 20000 -i in/ -o /dev/shm/fuzz-out/ -- java -cp instrumented/ ClassToTest
+$ java-afl-fuzz -m 20000 -i in/ -o /dev/shm/fuzz-out/ -- java -jar instrumented/jar-to-test.jar
 ```
 
 Parameters are having following functions:
 
 * `-i in/`: Input directory of initial data that then gets modified
   over the fuzzing process.
-* `-o out/`: Output directory for fuzzing state data.
+* `-o /dev/shm/fuzz-out/`: Output directory for fuzzing state
+  data. This should always be on a shared memory drive and never in a
+  directory pointing to a physical hard drive.
 * `-m 20000`: Higher virtual memory limit that enables JVM to run, as
-the default memory limit in `afl-fuzz` is 50 megabytes. JVM can
-allocate around 10 gigabytes of virtual memory by default.
+  the default memory limit in `afl-fuzz` is 50 megabytes. JVM can
+  allocate around 10 gigabytes of virtual memory by default.
 
 More detailed description of available options can be found from
-[`afl-fuzz` README](http://lcamtuf.coredump.cx/afl/README.txt). You
+[american fuzzy lop's README](http://lcamtuf.coredump.cx/afl/README.txt). You
 may also want to adjust maximum heap size with
 [`-Xmx`](https://docs.oracle.com/cd/E15523_01/web.1111/e13814/jvm_tuning.htm#PERFM164)
 option to be smaller than the default if you fuzz multiple JVM
@@ -75,7 +59,7 @@ instances on the same machine to keep memory usage sane.
 
 More efficient deferred and persistent modes start each fuzzing
 iteration later than at the beginning of `main()` function. Using
-persistent or deferred modes requires either a special annotation for
+deferred or persistent mode requires either a special annotation for
 the `main()` function or `--custom-init` flag to the instrument
 program:
 
@@ -105,9 +89,11 @@ following fashion:
 ```java
 public class ProgramPersistent {
     @javafl.CustomInit
-    public static void main(String args[]) {
+    public static void main(String[] args) {
         ...
         javafl.JavaAfl.init();
+        // You need to read the actual input after initialization point.
+        System.in.read(data_buffer);
         ... do actual input processing...
     }
 }
@@ -121,7 +107,7 @@ that you flush Java's buffering on it after you have read your data:
 ```java
 public class ProgramPersistent {
     @javafl.CustomInit
-    public static void main(String args[]) {
+    public static void main(String[] args) {
         ...
         byte[] data = new byte[128];
         int read = 128;
@@ -151,6 +137,23 @@ Even though building requires Java 8, this should be able to
 instrument programs that run only on some older versions of Java.
 
 TODO description and various more portable and usable build tools.
+
+## Performance
+
+Performance numbers on Intel Core i7-3770K CPU @ 3.50GHz with OpenJDK
+1.8.0_151 and afl 2.52b:
+
+* Fork server mode around 750 executions/second for a program that
+  does nothing. Closer to 300 when there is actually something
+  happening.
+* Deferred mode naturally gets something between the fork server mode
+  and persistent mode. Depends how heavy the initialization is,
+  probably maybe some tens of percents.
+* Persistent mode around 14000 executions/second. Highly depends on
+  how much and how long JVM is able to optimize before being
+  killed. Around 31000 iterations/second for an empty while loop, that
+  is close to the maximum that native C code can handle with `afl-fuzz`
+  in persistent mode.
 
 ## TODO
 
