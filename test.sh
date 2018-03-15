@@ -30,3 +30,6 @@ if [[ "$tuples_persistent" -lt 6 ]]; then
     echo >&2 "Failed to generate enough tuples in persistent implementation!"
     exit 1
 fi
+
+./java-afl-showmap -m 30000 -o /dev/null -- \
+    java -cp out/ins test.NoAttribute < in/a.txt

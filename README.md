@@ -22,30 +22,101 @@ Performance on Intel Core i7-3770K CPU @ 3.50GHz:
 
 ## Usage
 
-TODO more description
-
-This works by instrumenting the compiled Java bytecode with
-probabilistic program coverage revealing instrumentation. The default
+Fuzzing with american fuzzy lop works by instrumenting the compiled
+Java bytecode with probabilistic program coverage revealing
+instrumentation. There are general types of instrumeting fuzzing modes
+in programs that can be fuzzed with `afl-fuzz` command. The default
 fork server mode does not need any modifications to the program source
 code and can work as is. There are also more efficient deferred fork
 server and persistent modes that enable you to skip some
 initialization code and keep the JVM running longer than for just one
 input.
 
-Instrumentation is done by running instrumentation program for each
-class file to instrument:
+First you need to instrument a program that you have. This is done by
+running the built `java-afl-instrument.jar` and instrumenting each jar
+or class file that you want to include in your program. No source code
+modifications are necessary to get started:
 
 ```bash
 $ java -jar java-afl-instrument.jar instrumented/ ClassToTest.class
 $ java -jar java-afl-instrument.jar instrumented/ jar-to-test.jar
 ```
 
-This actually injects native JNI code into the used class files, so
-you can only run these files on similar enough systems that they were
-instrumented on.
+As instrumentation injects native JNI code into the used files, so you
+can only run these files on similar enough systems that
+`java-afl-instrument.jar` was run on.
 
-Using persistent or deferred modes requires a special annotation for
-the `main()` function:
+Then you are ready to fuzz your Java application with `afl-fuzz`. It
+can be done with this type of command with the provided
+`java-afl-fuzz` wrapper script:
+
+```bash
+$ java-afl-fuzz -m 20000 -i in/ -o out/ -- java -cp instrumented/ ClassToTest
+$ java-afl-fuzz -m 20000 -i in/ -o out/ -- java -jar instrumented/jar-to-test.jar
+```
+
+Parameters are having following functions:
+
+* `-i in/`: Input directory of initial data that then gets modified
+  over the fuzzing process.
+* `-o out/`: Output directory for fuzzing state data.
+* `-m 20000`: Higher virtual memory limit that enables JVM to run, as
+the default memory limit in `afl-fuzz` is 50 megabytes. JVM can
+allocate around 10 gigabytes of virtual memory by default.
+
+More detailed description of available options can be found from
+[`afl-fuzz` README](http://lcamtuf.coredump.cx/afl/README.txt). You
+may also want to adjust maximum heap size with
+[`-Xmx`](https://docs.oracle.com/cd/E15523_01/web.1111/e13814/jvm_tuning.htm#PERFM164)
+option to be smaller than the default if you fuzz multiple JVM
+instances on the same machine to keep memory usage sane.
+
+### Advanced usage
+
+More efficient deferred and persistent modes start each fuzzing
+iteration later than at the beginning of `main()` function. Using
+persistent or deferred modes requires either a special annotation for
+the `main()` function or `--custom-init` flag to the instrument
+program:
+
+
+```java
+public class ProgramCustom {
+    @javafl.CustomInit
+    public static void main(String args[]) {
+        ...
+    }
+}
+```
+
+Or you can instrument unmodified code in such way that the init
+function does not need to reside inside `main()` by making
+`--custom-init` as the first parameter:
+
+```bash
+$ java -jar java-afl-instrument.jar --custom-init instrumented/ ClassToTest.class
+$ java -jar java-afl-instrument.jar --custom-init instrumented/ jar-to-test.jar
+```
+
+To put the application into deferred mode where all the initialization
+code that comes before `javafl.JavaAfl.init()` function can be done in
+following fashion:
+
+```java
+public class ProgramPersistent {
+    @javafl.CustomInit
+    public static void main(String args[]) {
+        ...
+        javafl.JavaAfl.init();
+        ... do actual input processing...
+    }
+}
+```
+
+To put the program into a persistent mode you need wrap the part that
+you want to execute around a `while (javafl.JavaAfl.loop(<iterations>))`
+loop. If you read the input from `System.in`, you need to take care
+that you flush Java's buffering on it after you have read your data:
 
 ```java
 public class ProgramPersistent {
@@ -66,34 +137,6 @@ public class ProgramPersistent {
 }
 ```
 
-Deferred mode does not need that many tricks as the persistent mode:
-
-```java
-public class ProgramPersistent {
-    @javafl.CustomInit
-    public static void main(String args[]) {
-        ...
-        javafl.JavaAfl.init();
-        ... do actual input processing...
-    }
-}
-```
-
-Fuzz. JVM allocates on my Debian system around 10 gigabytes of virtual
-memory, so default virtual memory limits of afl-fuzz need to be set
-higher (`-m 20000`).
-
-```bash
-$ java-afl-fuzz -m 20000 -i in/ -o out/ -- java -cp instrumented/ ClassToTest
-$ java-afl-fuzz -m 20000 -i in/ -o out/ -- java -jar instrumented/jar-to-test.jar
-```
-
-You may want to adjust maximum heap size with
-[`-Xmx`](https://docs.oracle.com/cd/E15523_01/web.1111/e13814/jvm_tuning.htm#PERFM164)
-option to be smaller than the default if you fuzz multiple JVM
-instances on the same machine, as default operating system provided
-memory limits won't help you here.
-
 ## Building
 
 You need to have [ASM 6.1](http://asm.ow2.org/) to build this as a
@@ -104,11 +147,13 @@ there is a crude build script to build and test this implementation:
 $ ./build.sh
 ```
 
-TODO description and more easy to use implementation.
+Even though building requires Java 8, this should be able to
+instrument programs that run only on some older versions of Java.
+
+TODO description and various more portable and usable build tools.
 
 ## TODO
 
-* Take care of package name in instrumenting outputs.
 * Support deferred init for arbitrary given method without source code
   modifications.
 * Better way to build this. Multiple different build tools are

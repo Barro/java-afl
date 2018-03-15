@@ -56,12 +56,13 @@ public class JavaAflInstrument
         private boolean _has_custom_init;
         private Random _random;
 
-        public InstrumentingMethodVisitor(MethodVisitor mv_, boolean is_main)
+        public InstrumentingMethodVisitor(
+            MethodVisitor mv_, boolean has_custom_init, boolean is_main)
         {
             super(Opcodes.ASM6, mv_);
             _is_main = is_main;
             _random = new Random();
-            _has_custom_init = false;
+            _has_custom_init = has_custom_init;
         }
 
         private void _aflMaybeLog()
@@ -158,12 +159,15 @@ public class JavaAflInstrument
 
     static class InstrumentingClassVisitor extends ClassVisitor
     {
+        boolean _has_global_custom_init;
         ClassWriter _writer;
 
-        public InstrumentingClassVisitor(ClassWriter cv)
+        public InstrumentingClassVisitor(
+            ClassWriter cv, boolean has_global_custom_init)
         {
             super(Opcodes.ASM6, cv);
             _writer = cv;
+            _has_global_custom_init = has_global_custom_init;
         }
 
         @Override
@@ -193,9 +197,11 @@ public class JavaAflInstrument
                     "_after_main",
                     "()V",
                     false);
-                mv = new InstrumentingMethodVisitor(mv, true);
+                mv = new InstrumentingMethodVisitor(
+                    mv, _has_global_custom_init, true);
             } else {
-                mv = new InstrumentingMethodVisitor(mv, false);
+                mv = new InstrumentingMethodVisitor(
+                    mv, _has_global_custom_init, false);
             }
             return mv;
         }
@@ -226,7 +232,8 @@ public class JavaAflInstrument
         return false;
     }
 
-    private static void instrument_classfile(File output_dir, String filename)
+    private static void instrument_classfile(
+        File output_dir, String filename, boolean has_global_custom_init)
     {
         File source_file = new File(filename);
         byte[] input_data = new byte[(int)source_file.length()];
@@ -236,7 +243,8 @@ public class JavaAflInstrument
             if (read != input_data.length) {
                 System.err.println("Unable to fully read " + filename);
             }
-            InstrumentedClass instrumented = instrument_class(input_data, filename);
+            InstrumentedClass instrumented = instrument_class(
+                input_data, filename, has_global_custom_init);
             File output_target_base = new File(
                 output_dir, instrumented.directory);
             if (!output_target_base.exists()) {
@@ -251,7 +259,7 @@ public class JavaAflInstrument
         }
     }
 
-    private static InstrumentedClass instrument_class(byte[] input, String filename)
+    private static InstrumentedClass instrument_class(byte[] input, String filename, boolean has_global_custom_init)
     {
         if (!filename.endsWith(".class")) {
             return new InstrumentedClass(input);
@@ -277,7 +285,8 @@ public class JavaAflInstrument
             return new InstrumentedClass(directory, input);
         }
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-        ClassVisitor visitor = new InstrumentingClassVisitor(writer);
+        ClassVisitor visitor = new InstrumentingClassVisitor(
+            writer, has_global_custom_init);
         try {
             reader.accept(visitor, ClassReader.SKIP_DEBUG);
         } catch (java.lang.TypeNotPresentException e) {
@@ -302,7 +311,8 @@ public class JavaAflInstrument
         }
     }
 
-    private static File _instrument_jar(JarFile input, File output) throws IOException
+    private static File _instrument_jar(
+        JarFile input, File output, boolean has_global_custom_init) throws IOException
     {
         FileOutputStream output_jarfile = new FileOutputStream(output);
         JarOutputStream jar = new JarOutputStream(output_jarfile);
@@ -318,7 +328,8 @@ public class JavaAflInstrument
             }
             InstrumentedClass instrumented = instrument_class(
                 input_stream_to_bytes(stream),
-                input.getName() + "/" + entry.getName());
+                input.getName() + "/" + entry.getName(),
+                has_global_custom_init);
             byte[] instrumented_class = instrumented.data;
             jar.putNextEntry(new JarEntry(entry.getName()));
             if (instrumented_class == null) {
@@ -333,10 +344,10 @@ public class JavaAflInstrument
     }
 
     private static void _instrument_file(
-        File output_dir, String filename)
+        File output_dir, String filename, boolean has_global_custom_init)
     {
         if (filename.endsWith(".class")) {
-            instrument_classfile(output_dir, filename);
+            instrument_classfile(output_dir, filename, has_global_custom_init);
             return;
         }
         File source_file = new File(filename);
@@ -346,7 +357,8 @@ public class JavaAflInstrument
             JarFile jar_input = new JarFile(source_file, false);
             physical_output = File.createTempFile(
                 ".java-afl-new-", ".jar", output_dir);
-            _instrument_jar(jar_input, physical_output);
+            _instrument_jar(
+                jar_input, physical_output, has_global_custom_init);
             physical_output.renameTo(rename_target);
             total_jarfiles++;
         } catch (java.io.FileNotFoundException e) {
@@ -421,11 +433,21 @@ public class JavaAflInstrument
     public static void main(String args[]) throws IOException
     {
         if (args.length < 2) {
-            System.err.println("Usage: instrumentor output-dir input.jar|input.class...");
+            System.err.println(
+                "Usage: instrumentor [--custom-init] output-dir input.jar|input.class...");
             return;
         }
 
-        File output_dir = new File(args[0]);
+        boolean has_global_custom_init = false;
+        boolean parsing = true;
+        int arg_index = 0;
+        String argument = args[arg_index];
+        if (argument.equals("--custom-init")) {
+            has_global_custom_init = true;
+            arg_index++;
+        }
+
+        File output_dir = new File(args[arg_index]);
         if (!output_dir.exists()) {
             if (!output_dir.mkdirs()) {
                 System.err.println("Unable to create output directory!");
@@ -433,11 +455,12 @@ public class JavaAflInstrument
             }
         }
         if (!output_dir.isDirectory()) {
-            System.err.println("Output directory " + output_dir + " is not a directory!");
+            System.err.println(
+                "Output directory " + output_dir + " is not a directory!");
             return;
         }
-        for (int i = 1; i < args.length; i++) {
-            _instrument_file(output_dir, args[i]);
+        for (int i = arg_index + 1; i < args.length; i++) {
+            _instrument_file(output_dir, args[i], has_global_custom_init);
         }
         if (total_classfiles > 0) {
             add_JavaAfl_to_directory(output_dir);

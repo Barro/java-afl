@@ -61,6 +61,7 @@ javac -d out/ test/Forking.java
 javac -d out/ test/Deferred.java
 javac -d out/ test/Persistent.java
 javac -d out/ test/Null.java
+javac -d out/ test/NoAttribute.java
 (
     set -euo pipefail
     cd out
@@ -76,3 +77,7 @@ java -jar java-afl-instrument.jar \
      out/test/Deferred.class \
      out/test/Persistent.class \
      out/test/Null.class
+
+java -jar java-afl-instrument.jar --custom-init \
+     out/ins \
+     out/test/NoAttribute.class
