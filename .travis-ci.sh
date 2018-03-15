@@ -16,3 +16,4 @@ cd "$DIR"
 
 ./build.sh
 ./test.sh
+./test-fuzz.sh

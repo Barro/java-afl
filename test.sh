@@ -2,8 +2,6 @@
 
 set -xeuo pipefail
 
-export AFL_SKIP_CPUFREQ=1
-
 # Test that jarfile instrumentation works without issues.
 ./java-afl-showmap -m 30000 -o out/tuples-forking.txt -- java -jar out/ins/test.jar < in/a.txt
 tuples_forking=$(wc -l < out/tuples-forking.txt)

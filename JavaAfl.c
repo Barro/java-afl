@@ -31,7 +31,7 @@ static void init_map_field(JNIEnv *env, jclass cls)
 {
     jfieldID map_field_id = (*env)->GetStaticFieldID(env, cls, "map", "[B");
     if (map_field_id == NULL) {
-        fprintf(stderr, "No AflFuzz.map field found from Java class!\n");
+        fprintf(stderr, "No map field found from JavaAfl class!\n");
         abort();
     }
     g_map_field_id = map_field_id;

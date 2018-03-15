@@ -131,7 +131,7 @@ public class JavaAflInstrument
         {
             // TODO it should be possible to also get the full class
             // descriptor name out during the compilation time...
-            if (desc.equals("L" + javafl.CustomInit.class.getName() + ";")) {
+            if (desc.equals("L" + javafl.CustomInit.class.getName().replace(".", "/") + ";")) {
                 _has_custom_init = true;
             }
             return null;
