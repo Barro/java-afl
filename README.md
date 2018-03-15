@@ -157,6 +157,9 @@ Performance numbers on Intel Core i7-3770K CPU @ 3.50GHz with OpenJDK
 
 ## TODO
 
+* Retry overly big functions with smaller instrumentation ratio.
+* Support the concept of instrumentation ratio with AFL_INST_RATIO
+  environmental variable.
 * Support deferred init for arbitrary given method without source code
   modifications.
 * Better way to build this. Multiple different build tools are
