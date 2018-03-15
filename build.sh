@@ -55,6 +55,7 @@ java -cp "$CLASSPATH" javafl.JavaAflInject out/javafl/JavaAfl.class out/libjava-
 jar -cfe "$DIR"/java-afl-instrument.jar javafl.JavaAflInstrument -C out/full .
 
 # Test classes and jarfile
+javac -d out/ test/Crashing.java
 javac -d out/ test/Utils.java
 javac -d out/ test/Forking.java
 javac -d out/ test/Deferred.java
@@ -69,6 +70,7 @@ javac -d out/ test/Null.java
 java -jar java-afl-instrument.jar \
      out/ins \
      out/test.jar \
+     out/test/Crashing.class \
      out/test/Utils.class \
      out/test/Forking.class \
      out/test/Deferred.class \
