@@ -32,6 +32,24 @@ public class JavaAflInstrument
     static private int total_jarfiles = 0;
     static private int total_classfiles = 0;
 
+    static class InstrumentedClass
+    {
+        String directory;
+        byte[] data;
+
+        InstrumentedClass(byte[] data_)
+        {
+            directory = "";
+            data = data_;
+        }
+
+        InstrumentedClass(String directory_, byte[] data_)
+        {
+            directory = directory_;
+            data = data_;
+        }
+    }
+
     static class InstrumentingMethodVisitor extends MethodVisitor
     {
         private boolean _is_main;
@@ -211,7 +229,6 @@ public class JavaAflInstrument
     private static void instrument_classfile(File output_dir, String filename)
     {
         File source_file = new File(filename);
-        File output_target_file = new File(output_dir, source_file.getName());
         byte[] input_data = new byte[(int)source_file.length()];
         try {
             FileInputStream input_stream = new FileInputStream(source_file);
@@ -219,23 +236,30 @@ public class JavaAflInstrument
             if (read != input_data.length) {
                 System.err.println("Unable to fully read " + filename);
             }
-            byte[] output = instrument_class(input_data, filename);
-            (new FileOutputStream(output_target_file)).write(output);
+            InstrumentedClass instrumented = instrument_class(input_data, filename);
+            File output_target_base = new File(
+                output_dir, instrumented.directory);
+            if (!output_target_base.exists()) {
+                output_target_base.mkdirs();
+            }
+            File output_target_file = new File(
+                output_target_base, source_file.getName());
+            (new FileOutputStream(output_target_file)).write(instrumented.data);
             total_classfiles++;
         } catch (IOException e) {
-            System.err.println("Unable to instrument " + filename);
+            System.err.println("Unable to instrument " + filename + ": " + e);
         }
     }
 
-    private static byte[] instrument_class(byte[] input, String filename)
+    private static InstrumentedClass instrument_class(byte[] input, String filename)
     {
         if (!filename.endsWith(".class")) {
-            return input;
+            return new InstrumentedClass(input);
         }
         // Work around ClassReader bug on zero length file:
         if (input.length == 0) {
             System.err.println("Empty file: " + filename);
-            return input;
+            return new InstrumentedClass(input);
         }
         ClassReader reader;
         try {
@@ -243,12 +267,14 @@ public class JavaAflInstrument
         } catch (java.lang.IllegalArgumentException e) {
             System.err.println(
                 "File " + filename + " is not a valid class file.");
-            return input;
+            return new InstrumentedClass(input);
         }
+        String name = reader.getClassName();
+        String directory = new File(name).getParentFile().toString();
         if (is_instrumented(reader)) {
             System.err.println("Already instrumented " + filename);
             total_classfiles--;
-            return input;
+            return new InstrumentedClass(directory, input);
         }
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         ClassVisitor visitor = new InstrumentingClassVisitor(writer);
@@ -257,22 +283,22 @@ public class JavaAflInstrument
         } catch (java.lang.TypeNotPresentException e) {
             System.err.println(
                 "Error while processing " + filename + ": " + e.getMessage());
-            return input;
+            return new InstrumentedClass(directory, input);
         } catch (java.lang.IllegalArgumentException e) {
             System.err.println(
                 "Error while processing " + filename + ": " + e.getMessage());
-            return input;
+            return new InstrumentedClass(directory, input);
         }
         writer.newUTF8(javafl.JavaAfl.INSTRUMENTATION_MARKER);
         try {
-            return writer.toByteArray();
+            return new InstrumentedClass(directory, writer.toByteArray());
         } catch (java.lang.IndexOutOfBoundsException e) {
             System.err.println(
                 "Error while processing " + filename + ": " + e.getMessage());
             // It's possible that the instrumentation makes the method
             // larger than 64 kilobytes that is the limit that Java
             // bytecode imposes on methods.
-            return input;
+            return new InstrumentedClass(directory, input);
         }
     }
 
@@ -290,9 +316,10 @@ public class JavaAflInstrument
                 jar.putNextEntry(new JarEntry(entry));
                 continue;
             }
-            byte[] instrumented_class = instrument_class(
+            InstrumentedClass instrumented = instrument_class(
                 input_stream_to_bytes(stream),
                 input.getName() + "/" + entry.getName());
+            byte[] instrumented_class = instrumented.data;
             jar.putNextEntry(new JarEntry(entry.getName()));
             if (instrumented_class == null) {
                 jar.write(input_stream_to_bytes(stream));

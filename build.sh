@@ -68,9 +68,7 @@ javac -d out/ test/Null.java
 
 java -jar java-afl-instrument.jar \
      out/ins \
-     out/test.jar
-java -jar java-afl-instrument.jar \
-     out/ins/test \
+     out/test.jar \
      out/test/Utils.class \
      out/test/Forking.class \
      out/test/Deferred.class \
