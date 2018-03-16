@@ -10,13 +10,27 @@
 
 #include <javafl_JavaAfl.h>
 
+// Use afl's config.h for constants.
+#ifdef HAVE_AFL_CONFIG_H
+
+#include <config.h>
+
+#else // #ifndef HAVE_AFL_CONFIG_H
+
 // These constants must be kept in sync with afl-fuzz:
 #ifndef MAP_SIZE
+
+#ifndef MAP_SIZE_POW2
 #define MAP_SIZE_POW2 16;
+#endif // #ifndef MAP_SIZE_POW2
+
 static const size_t MAP_SIZE = 1 << MAP_SIZE_POW2;
-#endif
+#endif // #ifndef MAP_SIZE
+
 static const char SHM_ENV_VAR[] = "__AFL_SHM_ID";
 static const int FORKSRV_FD = 198;
+
+#endif // #ifndef HAVE_AFL_CONFIG_H
 
 // These are global helper variables to avoid discovering the same
 // information again and again.

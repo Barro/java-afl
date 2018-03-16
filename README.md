@@ -164,6 +164,8 @@ Performance numbers on Intel Core i7-3770K CPU @ 3.50GHz with OpenJDK
   modifications.
 * Better way to build this. Multiple different build tools are
   probably a must.
+  * Also support including afl's config.h file for map size and file
+    descriptor information.
 * Alternative method implementations based on fuzzing mode (similar to
   C preprocessor's #ifdef/#ifndef). Probably somehow with annotations
   or `System.getProperty("FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION")`.
