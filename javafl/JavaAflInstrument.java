@@ -481,6 +481,14 @@ public class JavaAflInstrument
             options.has_custom_init = true;
             arg_index++;
         }
+        String ratio_str = System.getenv("AFL_INST_RATIO");
+        if (ratio_str != null) {
+            options.ratio = Integer.parseInt(ratio_str);
+        }
+        ratio_str = System.getenv("JAVA_AFL_INST_RATIO");
+        if (ratio_str != null) {
+            options.ratio = Integer.parseInt(ratio_str);
+        }
 
         File output_dir = new File(args[arg_index]);
         if (!output_dir.exists()) {
@@ -503,6 +511,8 @@ public class JavaAflInstrument
         System.out.println(
             "Output files are available at " + output_dir.getCanonicalPath());
         System.out.println(
-            "Instrumented " + total_classfiles + " .class files and " + total_jarfiles + " .jar files.");
+            "Instrumented " + total_classfiles + " .class files and "
+            + total_jarfiles + " .jar files with "
+            + total_locations + " locations.");
     }
 }
