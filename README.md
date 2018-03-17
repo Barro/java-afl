@@ -133,7 +133,9 @@ If you pass american fuzzy lop's source code directory that has
 `config.h` file in it, you can pass following C flags to JNI
 compilation part:
 
-`-I<path-to-afl-src-dir> -DHAVE_AFL_CONFIG_H`
+```
+CFLAGS="-I<path-to-afl-src-dir> -DHAVE_AFL_CONFIG_H"
+```
 
 This makes the compiled information match to what afl-fuzz expects.
 
