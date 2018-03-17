@@ -1,0 +1,78 @@
+#load(":java-afl.bzl", "headers", "inject_rule")
+
+java_library(
+    name = "JavaAflRaw",
+    srcs = ["javafl/JavaAfl.java"],
+)
+
+genrule(
+    name = "javafl-javah",
+    srcs = ["javafl/JavaAfl.java"],
+    outs = ["javafl/javafl_JavaAfl.h"],
+    cmd = """\
+javah -d $(@D) -jni javafl.JavaAfl
+""",
+)
+
+cc_library(
+    name = "java-afl-lib",
+    srcs = [
+        "@local_jdk//:jni_header",
+        "@local_jdk//:jni_md_header-linux",
+        "JavaAfl.c",
+    ],
+    hdrs = [
+        ":javafl-javah",
+    ],
+    includes = [
+        "external/local_jdk/include",
+        "external/local_jdk/include/linux",
+        "javafl",
+    ],
+)
+
+cc_binary(
+    name = "libjava-afl.so",
+    deps = [ ":java-afl-lib"],
+    linkshared = 1,
+)
+
+java_library(
+    name = "JavaAflInject",
+    srcs = ["javafl/JavaAflInject.java"],
+    deps = ["@asm//jar"],
+)
+
+genrule(
+    name = "JavaAfl-injected",
+    srcs = [
+        ":JavaAflRaw",
+        ":JavaAflInject",
+        ":libjava-afl.so",
+        "@asm//jar",
+    ],
+    outs = ["javafl/JavaAfl.class"],
+    cmd = """\
+jar xf $(location JavaAflRaw);
+java -cp $(location :JavaAflInject):$(location @asm//jar) \
+    javafl.JavaAflInject javafl/JavaAfl.class $(location :libjava-afl.so);
+cp javafl/JavaAfl.class $@
+""",
+)
+
+java_binary(
+    name = "java-afl-instrument",
+    srcs = [
+        "javafl/CustomInit.java",
+        "javafl/JavaAflInstrument.java",
+        ],
+    deps = [
+        ":JavaAflRaw",
+        "@asm//jar",
+    ],
+    resources = [
+        ":JavaAfl-injected",
+    ],
+    main_class = "javafl.JavaAflInstrument",
+    visibility = ["//visibility:public"],
+)

@@ -125,9 +125,34 @@ public class ProgramPersistent {
 
 ## Building
 
-You need to have [ASM 6.1](http://asm.ow2.org/) to build this as a
-dependency in addition to Java 8 and afl build dependencies. Currently
-there is a crude build script to build and test this implementation:
+As there are tons of different tools to build Java programs with
+automatic dependency fetching, java-afl supports more than one way to
+build itself.
+
+If you pass american fuzzy lop's source code directory that has
+`config.h` file in it, you can pass following C flags to JNI
+compilation part:
+
+`-I<path-to-afl-src-dir> -DHAVE_AFL_CONFIG_H`
+
+This makes the compiled information match to what afl-fuzz expects.
+
+### Bazel
+
+[Bazel](https://bazel.build/) a build tool that can handle very large
+programs with ease.
+
+```bash
+$ bazel build :java-afl-instrument_deploy.jar
+$ bazel-bin/java-afl-instrument files-to-instrument...
+```
+
+### Travis CI
+
+Requires Ubuntu 14.04 based system. You need to have
+[ASM 6.1](http://asm.ow2.org/) to build this as a dependency in
+addition to Java 8 and afl build dependencies. Currently there is a
+crude build script to build and test this implementation:
 
 ```bash
 $ ./build.sh
@@ -135,8 +160,6 @@ $ ./build.sh
 
 Even though building requires Java 8, this should be able to
 instrument programs that run only on some older versions of Java.
-
-TODO description and various more portable and usable build tools.
 
 ## Performance
 
@@ -163,6 +186,10 @@ Performance numbers on Intel Core i7-3770K CPU @ 3.50GHz with OpenJDK
   probably a must.
   * Also support including afl's config.h file for map size and file
     descriptor information.
+  * CMake
+  * Ant
+  * Maven
+  * Gradle
 * Alternative method implementations based on fuzzing mode (similar to
   C preprocessor's #ifdef/#ifndef). Probably somehow with annotations
   or `System.getProperty("FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION")`.
@@ -176,6 +203,21 @@ Performance numbers on Intel Core i7-3770K CPU @ 3.50GHz with OpenJDK
   approximation of the program execution path.
 * Inspired by [python-afl](http://jwilk.net/software/python-afl) and
   [Kelinci](https://github.com/isstac/kelinci).
+
+## Dependencies
+
+Mandatory dependencies to build this:
+
+* GNU/Linux system with recently new basic utilities.
+* C compiler.
+* Java 1.8 or newer to build and to instrument classes with afl-fuzz
+  compatible instrumentation. Runtime Java version of instrumented
+  classes should be anything that the original class worked with.
+* [ASM 6.1](http://asm.ow2.org/)
+
+Optional dependencies for building include one of these:
+
+* Bazel
 
 ## License
 
