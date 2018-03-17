@@ -42,7 +42,7 @@ public class JavaAfl implements Thread.UncaughtExceptionHandler
             }
             System.load(jni_target.getAbsolutePath());
         } catch (java.io.IOException e) {
-            new RuntimeException(e);
+            throw new RuntimeException(e);
         } finally {
             if (jni_target != null) {
                 // We need to explicitly delete a file here instead of
