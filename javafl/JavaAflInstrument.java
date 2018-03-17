@@ -293,6 +293,7 @@ public class JavaAflInstrument
     private static InstrumentedClass instrument_class(
         byte[] input, String filename, InstrumentationOptions options)
     {
+        int old_locations = JavaAflInstrument.total_locations;
         InstrumentationOptions try_options = new InstrumentationOptions(
             options);
         // Some relatively shortlist of instrumentation ratios that
@@ -302,6 +303,7 @@ public class JavaAflInstrument
             try {
                 return try_instrument_class(input, filename, try_options);
             } catch (RetryableInstrumentationException e) {
+                JavaAflInstrument.total_locations = old_locations;
                 if (try_options.ratio == 0) {
                     System.err.println(
                         "Unable instrument " + filename + " at all!");
