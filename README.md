@@ -147,7 +147,7 @@ $ bazel build :java-afl-instrument_deploy.jar
 $ bazel-bin/java-afl-instrument files-to-instrument...
 ```
 
-### Travis CI
+### Travis CI [![Build Status](https://travis-ci.org/Barro/java-afl.svg?branch=master)](https://travis-ci.org/Barro/java-afl)
 
 Requires Ubuntu 14.04 based system. You need to have
 [ASM 6.1](http://asm.ow2.org/) to build this as a dependency in
