@@ -12,6 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+config_setting(
+    name = "linux-mode",
+    values = { "cpu": "k8" }
+)
+
+config_setting(
+    name = "darwin-mode",
+    values = { "cpu": "darwin" }
+)
+
 java_library(
     name = "JavaAflRaw",
     srcs = ["javafl/JavaAfl.java"],
@@ -30,17 +40,21 @@ cc_library(
     name = "java-afl-lib",
     srcs = [
         "@local_jdk//:jni_header",
-        "@local_jdk//:jni_md_header-linux",
         "JavaAfl.c",
-    ],
+    ] + select({
+        ":linux-mode": ["@local_jdk//:jni_md_header-linux"],
+        ":darwin-mode": ["@local_jdk//:jni_md_header-darwin"],
+    }),
     hdrs = [
         ":javafl-javah",
     ],
     includes = [
         "external/local_jdk/include",
-        "external/local_jdk/include/linux",
         "javafl",
-    ],
+    ] + select({
+        ":linux-mode": ["external/local_jdk/include/linux"],
+        ":darwin-mode": ["external/local_jdk/include/darwin"],
+    }),
 )
 
 cc_binary(
