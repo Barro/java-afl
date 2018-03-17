@@ -43,3 +43,13 @@ if [[ "$files_cmin" -eq "$files_in" ]]; then
     echo >&2 "Files in in/ match the files in out/min/!"
     exit 1
 fi
+
+echo -n aaaaaa > out/to-min.txt
+./java-afl-tmin -m 30000 -i out/to-min.txt -o out/min.txt -- java -jar out/ins/test.jar
+size_orig=$(stat --format=%s out/to-min.txt)
+size_min=$(stat --format=%s out/min.txt)
+if [[ "$size_orig" -le "$size_min" ]]; then
+    echo >&2 "java-afl-tmin does not seem to do its work!"
+    echo >&2 "Input file was $size_orig bytes and output is $size_min bytes!"
+    exit 1
+fi
