@@ -37,7 +37,6 @@ static const int FORKSRV_FD = 198;
 static void* g_afl_area = (void*)-1;
 static void* g_zero_area = NULL;
 static jfieldID g_map_field_id = NULL;
-static jobject g_map_field = NULL;
 static bool g_is_persistent = false;
 static bool g_initialized = false;
 
@@ -49,6 +48,12 @@ static void init_map_field(JNIEnv *env, jclass cls)
         abort();
     }
     g_map_field_id = map_field_id;
+}
+
+static jint get_prev_location(JNIEnv *env, jclass cls)
+{
+    jfieldID prev_location_field_id = (*env)->GetStaticFieldID(env, cls, "prev_location", "I");
+    return (*env)->GetStaticIntField(env, cls, prev_location_field_id);
 }
 
 static jobject get_map_field(JNIEnv *env, jclass cls)
@@ -159,6 +164,11 @@ JNIEXPORT void JNICALL Java_javafl_JavaAfl__1init_1impl
     // This area of zeros is here only to be able to zero the map
     // memory on Java side fast when in persistent fuzzing mode.
     g_zero_area = calloc(1, MAP_SIZE);
+
+    jint start_location = get_prev_location(env, cls);
+    // Have at least something in the map so that afl-fuzz or
+    // afl-showmap don't give confusing hard to debug messages.
+    ((char*)g_zero_area)[start_location] = 1;
 
     g_afl_area = shmat(atoi(afl_shm_id), NULL, 0);
     if (g_afl_area == (void*)-1) {
