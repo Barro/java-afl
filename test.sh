@@ -33,3 +33,13 @@ fi
 
 ./java-afl-showmap -m 30000 -o /dev/null -- \
     java -cp out/ins test.NoAttribute < in/a.txt
+
+rm -rf out/min/
+./java-afl-cmin -m 30000 -i in/ -o out/min/ -- java -jar out/ins/test.jar
+files_in=$(find in/ -type f | wc -l)
+files_cmin=$(find out/min/ -type f | wc -l)
+if [[ "$files_cmin" -eq "$files_in" ]]; then
+    echo >&2 "java-afl-cmin does not seem to do its work!"
+    echo >&2 "Files in in/ match the files in out/min/!"
+    exit 1
+fi
