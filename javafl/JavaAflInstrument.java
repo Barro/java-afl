@@ -344,7 +344,11 @@ public class JavaAflInstrument
             return new InstrumentedClass(input);
         }
         String name = reader.getClassName();
-        String directory = new File(name).getParentFile().toString();
+        File directory_file = new File(name).getParentFile();
+        String directory = "";
+        if (directory_file != null) {
+            directory = directory_file.toString();
+        }
         if (is_instrumented(reader)) {
             System.err.println("Already instrumented " + filename);
             total_classfiles--;
