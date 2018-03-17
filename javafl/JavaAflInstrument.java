@@ -60,7 +60,12 @@ public class JavaAflInstrument
             ratio = ratio_;
             has_custom_init = has_custom_init_;
         }
-    }
+
+        InstrumentationOptions(InstrumentationOptions other)
+        {
+            this(other.ratio, other.has_custom_init);
+        }
+}
 
     static class InstrumentingMethodVisitor extends MethodVisitor
     {
@@ -288,11 +293,33 @@ public class JavaAflInstrument
     private static InstrumentedClass instrument_class(
         byte[] input, String filename, InstrumentationOptions options)
     {
-        try {
-            return try_instrument_class(input, filename, options);
-        } catch (RetryableInstrumentationException e) {
-            return e.class_data;
+        InstrumentationOptions try_options = new InstrumentationOptions(
+            options);
+        // Some relatively shortlist of instrumentation ratios that
+        // eventually end up in zero:
+        int[] max_ratios = {80, 65, 50, 35, 25, 15, 10, 5, 2, 1, 0};
+        for (int i = 0; i < 100; i++) {
+            try {
+                return try_instrument_class(input, filename, try_options);
+            } catch (RetryableInstrumentationException e) {
+                if (try_options.ratio == 0) {
+                    System.err.println(
+                        "Unable instrument " + filename + " at all!");
+                    return e.class_data;
+                }
+                for (int new_ratio : max_ratios) {
+                    if (try_options.ratio > new_ratio) {
+                        try_options.ratio = new_ratio;
+                        System.err.println(
+                            "Instrumenting " + filename
+                            + " with ratio " + new_ratio + "!");
+                        break;
+                    }
+                }
+            }
         }
+        assert false : "We should never reach here! File a bug!";
+        throw new AssertionError("We should never reach here! File a bug!");
     }
 
     private static InstrumentedClass try_instrument_class(
@@ -334,6 +361,11 @@ public class JavaAflInstrument
             System.err.println(
                 "Error while processing " + filename + ": " + e.getMessage());
             return new InstrumentedClass(directory, input);
+        }
+
+        try {
+            writer.newUTF8(javafl.JavaAfl.INSTRUMENTATION_MARKER);
+            return new InstrumentedClass(directory, writer.toByteArray());
         } catch (java.lang.IndexOutOfBoundsException e) {
             // It's possible that the instrumentation makes the method
             // larger than 64 kilobytes that is the limit that Java
@@ -341,8 +373,6 @@ public class JavaAflInstrument
             throw new RetryableInstrumentationException(
                 new InstrumentedClass(directory, input));
         }
-        writer.newUTF8(javafl.JavaAfl.INSTRUMENTATION_MARKER);
-        return new InstrumentedClass(directory, writer.toByteArray());
     }
 
     private static File _instrument_jar(
