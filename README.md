@@ -137,7 +137,10 @@ compilation part:
 CFLAGS="-I<path-to-afl-src-dir> -DHAVE_AFL_CONFIG_H"
 ```
 
-This makes the compiled information match to what afl-fuzz expects.
+This makes the compiled information match to what afl-fuzz expects if
+it has been modified in any way. Build systems also try to deduce this
+(TODO) during compilation from existing `afl-showmap` command if such
+exists.
 
 ### Bazel
 
@@ -184,10 +187,9 @@ Performance numbers on Intel Core i7-3770K CPU @ 3.50GHz with OpenJDK
 
 * Support deferred init for arbitrary given method without source code
   modifications.
+* Dynamically figure out the used map size from afl-showmap.
 * Better way to build this. Multiple different build tools are
   probably a must.
-  * Also support including afl's config.h file for map size and file
-    descriptor information.
   * CMake
   * Ant
   * Maven
