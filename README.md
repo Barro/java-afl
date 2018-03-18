@@ -226,7 +226,6 @@ Performance numbers on Intel Core i7-3770K CPU @ 3.50GHz with OpenJDK
 * Dynamically figure out the used map size from afl-showmap.
 * Better way to build this. Multiple different build tools are
   probably a must.
-  * CMake
   * Ant
   * Maven
   * Gradle

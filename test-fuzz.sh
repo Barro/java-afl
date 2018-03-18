@@ -22,14 +22,8 @@ export AFL_NO_UI=1
 export AFL_NO_AFFINITY=1
 export AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1
 
-if [[ "${TRAVIS:-false}" == false ]]; then
-    test_timeout=10
-    testcase_timeout=1000+
-else
-    # Travis CI needs more time for everything:
-    test_timeout=20
-    testcase_timeout=2000+
-fi
+test_timeout=10
+testcase_timeout=1000+
 
 for mode in Forking Deferred Persistent; do
     rm -rf out/fuzz-"$mode"
@@ -39,6 +33,12 @@ for mode in Forking Deferred Persistent; do
     queue_files=$(find out/fuzz-"$mode"/queue -type f | grep -v .state | wc -l)
     if [[ "$queue_files" -lt 15 ]]; then
         echo >&2 "$mode mode does not seem to provide unique paths!"
+        exit 1
+    fi
+    unstable_results=$(
+        grep stability out/fuzz-"$mode"/fuzzer_stats | grep -v "100.00%" || :)
+    if [[ -n "${unstable_results:-}" ]]; then
+        echo >&2 "$mode mode was unstable: $unstable_results"
         exit 1
     fi
 done
