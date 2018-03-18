@@ -123,6 +123,28 @@ public class ProgramPersistent {
 }
 ```
 
+### Options controlling instrumentation
+
+Command line switches to `java-afl-instrument.jar`:
+
+* `--custom-init`
+* `--deterministic`: by default java-afl produces random class files
+  to make it possible to probabilistically get bigger coverage on the
+  program from two differently instrumented programs than from
+  one. This switch makes the instrumentation depend solely on the
+  input data for each class and will always result in the same result
+  between different instrumentation runs.
+
+Environmental variables:
+
+* `AFL_INST_RATIO`: by default 100% of program control flow altering
+  locations are instrumented. This makes it possible to
+  probabilistically select a smaller instrumentation ratio. Smaller
+  instrumentation ratios are useful in big programs where resulting
+  program execution path traces would otherwise fill the default 16
+  bit state map and increasing the map size would add unneeded
+  performance penalty.
+
 ## Building
 
 As there are tons of different tools to build Java programs with

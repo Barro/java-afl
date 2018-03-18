@@ -70,16 +70,18 @@ public class JavaAflInstrument
     {
         int ratio;
         boolean has_custom_init;
+        boolean deterministic;
 
-        InstrumentationOptions(int ratio_, boolean has_custom_init_)
+        InstrumentationOptions(int ratio_, boolean has_custom_init_, boolean deterministic_)
         {
             ratio = ratio_;
             has_custom_init = has_custom_init_;
+            deterministic = deterministic_;
         }
 
         InstrumentationOptions(InstrumentationOptions other)
         {
-            this(other.ratio, other.has_custom_init);
+            this(other.ratio, other.has_custom_init, other.deterministic);
         }
 }
 
@@ -92,11 +94,14 @@ public class JavaAflInstrument
         private Random _random;
 
         public InstrumentingMethodVisitor(
-            MethodVisitor mv_, InstrumentationOptions options, boolean is_main)
+            MethodVisitor mv_,
+            Random random,
+            InstrumentationOptions options,
+            boolean is_main)
         {
             super(Opcodes.ASM6, mv_);
             _is_main = is_main;
-            _random = new Random();
+            _random = random;
             _instrumentation_ratio = options.ratio;
             _has_custom_init = options.has_custom_init;
         }
@@ -197,14 +202,18 @@ public class JavaAflInstrument
 
     static class InstrumentingClassVisitor extends ClassVisitor
     {
-        InstrumentationOptions _options;
         ClassWriter _writer;
+        InstrumentationOptions _options;
+        Random _random;
 
         public InstrumentingClassVisitor(
-            ClassWriter cv, InstrumentationOptions options)
+            ClassWriter cv,
+            Random random,
+            InstrumentationOptions options)
         {
             super(Opcodes.ASM6, cv);
             _writer = cv;
+            _random = random;
             _options = options;
         }
 
@@ -221,6 +230,7 @@ public class JavaAflInstrument
             if (mv == null) {
                 return null;
             }
+
             // Instrument all public static main functions with the
             // start-up and teardown instrumentation.
             int public_static = Opcodes.ACC_STATIC | Opcodes.ACC_PUBLIC;
@@ -236,10 +246,10 @@ public class JavaAflInstrument
                     "()V",
                     false);
                 mv = new InstrumentingMethodVisitor(
-                    mv, _options, true);
+                    mv, _random, _options, true);
             } else {
                 mv = new InstrumentingMethodVisitor(
-                    mv, _options, false);
+                    mv, _random, _options, false);
             }
             return mv;
         }
@@ -371,8 +381,14 @@ public class JavaAflInstrument
             return new InstrumentedClass(directory, input);
         }
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+        Random random;
+        if (options.deterministic) {
+            random = new Random(java.util.Arrays.hashCode(input));
+        } else {
+            random = new Random();
+        }
         ClassVisitor visitor = new InstrumentingClassVisitor(
-            writer, options);
+            writer, random, options);
         try {
             reader.accept(visitor, ClassReader.SKIP_DEBUG);
         } catch (java.lang.TypeNotPresentException e) {
@@ -516,22 +532,39 @@ public class JavaAflInstrument
         }
     }
 
+    private static int usage()
+    {
+        System.err.println(
+            "Usage: instrumentor [--custom-init]|[--deterministic]|[--] output-dir input.jar|input.class...");
+        return 1;
+    }
+
     public static void main(String args[]) throws IOException
     {
         if (args.length < 2) {
-            System.err.println(
-                "Usage: instrumentor [--custom-init] output-dir input.jar|input.class...");
-            return;
+            System.exit(usage());
         }
 
         InstrumentationOptions options = new InstrumentationOptions(
-            100, false);
+            100, false, false);
         boolean parsing = true;
-        int arg_index = 0;
-        String argument = args[arg_index];
-        if (argument.equals("--custom-init")) {
-            options.has_custom_init = true;
+        int arg_index = -1;
+        while (parsing) {
             arg_index++;
+            String argument = args[arg_index];
+            if (!argument.startsWith("--")) {
+                parsing = false;
+            } else if (argument.equals("--custom-init")) {
+                options.has_custom_init = true;
+            } else if (argument.equals("--deterministic")) {
+                options.deterministic = true;
+            } else if (argument.equals("-h") || argument.equals("--help")) {
+                System.exit(usage());
+            } else if (argument.equals("--")) {
+                parsing = false;
+            } else if (argument.startsWith("--")) {
+                System.exit(usage());
+            }
         }
         String ratio_str = System.getenv("AFL_INST_RATIO");
         if (ratio_str != null) {
@@ -540,6 +573,10 @@ public class JavaAflInstrument
         ratio_str = System.getenv("JAVA_AFL_INST_RATIO");
         if (ratio_str != null) {
             options.ratio = Integer.parseInt(ratio_str);
+        }
+        if (options.ratio < 0 || options.ratio > 100) {
+            System.err.println("AFL_INST_RATIO must be between 0 and 100!");
+            System.exit(1);
         }
 
         File output_dir = new File(args[arg_index]);

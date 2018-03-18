@@ -2,6 +2,32 @@
 
 set -xeuo pipefail
 
+# Default mode should produce differing files between runs:
+java -jar java-afl-instrument.jar \
+     out/default/1 \
+     out/test/Utils.class
+java -jar java-afl-instrument.jar \
+     out/default/2 \
+     out/test/Utils.class
+if cmp --quiet out/default/1/test/Utils.class out/default/2/test/Utils.class; then
+    echo >&2 "Instrumented files should be different by default!"
+    exit 1
+fi
+
+# Deterministic mode should produce identical files between runs:
+java -jar java-afl-instrument.jar \
+     --deterministic \
+     out/deterministic/1 \
+     out/test/Utils.class
+java -jar java-afl-instrument.jar \
+     --deterministic \
+     out/deterministic/2 \
+     out/test/Utils.class
+if ! cmp out/deterministic/1/test/Utils.class out/deterministic/2/test/Utils.class; then
+    echo >&2 "Instrumented files should be identical in deterministic mode!"
+    exit 1
+fi
+
 # Test that jarfile instrumentation works without issues.
 ./java-afl-showmap -m 30000 -o out/tuples-forking.txt -- java -jar out/ins/test.jar < in/a.txt
 tuples_forking=$(wc -l < out/tuples-forking.txt)
