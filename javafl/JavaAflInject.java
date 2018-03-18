@@ -62,7 +62,7 @@ public class JavaAflInject
     {
         if (args.length != 2) {
             System.err.println("Usage: JavaAflInject javafl/JavaAfl.class libjava-afl.so");
-            return;
+            System.exit(1);
         }
 
         String class_filename = args[0];

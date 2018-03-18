@@ -174,6 +174,18 @@ $ bazel build :java-afl-instrument_deploy.jar
 $ bazel-bin/java-afl-instrument files-to-instrument...
 ```
 
+### CMake
+
+[CMake](https://cmake.org/) is the PHP of build systems. Widely
+available and gets stuff done but becomes quite painful after a
+while.
+
+```bash
+$ ( mkdir -p build-cmake && cd build-cmake && cmake .. -GNinja )
+$ ninja -C build-cmake
+$ java -jar build-cmake/java-afl-instrument.jar files-to-instrument...
+```
+
 ### Travis CI [![Build Status](https://travis-ci.org/Barro/java-afl.svg?branch=master)](https://travis-ci.org/Barro/java-afl)
 
 Requires Ubuntu 14.04 based system. You need to have
