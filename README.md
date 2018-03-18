@@ -51,14 +51,14 @@ of time instrumentation on your program, but at the same time the
 instrumentation likely covers code that you are not interested in.
 
 Just in time instrumentation works by adding both `java-afl-run.jar`
-and the target classes to CLASSPATH and running `javafl.JavaAflRun`
+and the target classes to CLASSPATH and running `javafl.run`
 class with the target class name as a parameter:
 
 ```bash
 $ java-afl-fuzz -m 20000 -i in/ -o /dev/shm/fuzz-out/ \
-      -- java -cp java-afl-run.jar:. javafl.JavaAflRun ClassToTest
+      -- java -cp java-afl-run.jar:. javafl.run ClassToTest
 $ java-afl-fuzz -m 20000 -i in/ -o /dev/shm/fuzz-out/ \
-      -- java -cp java-afl-run.jar:jar-to-test.jar javafl.JavaAflRun ClassToTest
+      -- java -cp java-afl-run.jar:jar-to-test.jar javafl.run ClassToTest
 ```
 
 Notice that there is no need to first instrument the class files, as

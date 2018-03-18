@@ -5,11 +5,11 @@ import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
 import javafl.JavaAflInstrument;
 
-public class JavaAflRun extends ClassLoader
+public class run extends ClassLoader
 {
     HashMap<String, Class<?>> _cache;
 
-    public JavaAflRun(ClassLoader parent) {
+    public run(ClassLoader parent) {
         super(parent);
         _cache = new HashMap<String, Class<?>>();
     }
@@ -76,8 +76,8 @@ public class JavaAflRun extends ClassLoader
             System.exit(1);
         }
         int map_size = javafl.JavaAfl.map.length;
-        ClassLoader my_loader = JavaAflRun.class.getClassLoader();
-        ClassLoader loader = new JavaAflRun(my_loader);
+        ClassLoader my_loader = run.class.getClassLoader();
+        ClassLoader loader = new run(my_loader);
         Class<?> clazz = null;
         try {
             clazz = loader.loadClass(args[0]);

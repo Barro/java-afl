@@ -75,7 +75,7 @@ add_jar(java-afl-base
         javafl/CustomInit.java
         javafl/fuzz.java
         javafl/JavaAflInstrument.java
-        javafl/JavaAflRun.java
+        javafl/run.java
     ENTRY_POINT javafl.JavaAflInstrument
     )
 add_dependencies(java-afl-base asm-jar)
@@ -101,7 +101,7 @@ add_custom_command(
     COMMAND ${Java_JAR_EXECUTABLE} -xf $<TARGET_PROPERTY:java-afl-base,JAR_FILE>
     COMMAND ${Java_JAR_EXECUTABLE} -xf ${ASM_JAR}
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/injected/javafl/JavaAfl.class javafl/
-    COMMAND ${Java_JAR_EXECUTABLE} -cfe ${CMAKE_CURRENT_BINARY_DIR}/java-afl-run.jar javafl.JavaAflRun .
+    COMMAND ${Java_JAR_EXECUTABLE} -cfe ${CMAKE_CURRENT_BINARY_DIR}/java-afl-run.jar javafl.run .
     DEPENDS java-afl-injected asm-jar
     )
 add_custom_target(java-afl-run DEPENDS java-afl-run.jar)

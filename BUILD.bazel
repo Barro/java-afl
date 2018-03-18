@@ -107,7 +107,7 @@ java_binary(
 java_binary(
     name = "java-afl-run",
     srcs = [
-        "javafl/JavaAflRun.java",
+        "javafl/run.java",
         ],
     deps = [
         ":JavaAflRaw",
@@ -117,6 +117,6 @@ java_binary(
     resources = [
         ":JavaAfl-injected",
     ],
-    main_class = "javafl.JavaAflRun",
+    main_class = "javafl.run",
     visibility = ["//visibility:public"],
 )
