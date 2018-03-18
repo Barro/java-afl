@@ -34,8 +34,8 @@ JNI_PATHS=(
     -I/usr/lib/jvm/java-8-openjdk-amd64/include/linux)
 CLASSPATH=asm-6.1.jar:out
 javac -cp "$CLASSPATH" -d out javafl/CustomInit.java
-javac -cp "$CLASSPATH" -d out javafl/fuzz.java
 javac -cp "$CLASSPATH" -d out javafl/JavaAfl.java
+javac -cp "$CLASSPATH" -d out javafl/fuzz.java
 javac -cp "$CLASSPATH" -d out javafl/JavaAflInstrument.java
 javah -cp "$CLASSPATH" -d out -jni javafl.JavaAfl
 cc -Os -shared -Wl,-soname,libjava-afl.so -o out/libjava-afl.so -fPIC "${JNI_PATHS[@]}" JavaAfl.c
