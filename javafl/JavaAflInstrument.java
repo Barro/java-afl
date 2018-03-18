@@ -350,7 +350,7 @@ public class JavaAflInstrument
         throw new AssertionError("We should never reach here! File a bug!");
     }
 
-    private static InstrumentedClass try_instrument_class(
+    protected static InstrumentedClass try_instrument_class(
         byte[] input, String filename, InstrumentationOptions options)
     {
         if (!filename.endsWith(".class")) {
@@ -496,6 +496,7 @@ public class JavaAflInstrument
             "javafl/CustomInit.class",
             "javafl/fuzz.class",
             "javafl/JavaAfl.class",
+            "javafl/JavaAfl$1.class",
         };
         try {
             jar.putNextEntry(new JarEntry("javafl/"));
@@ -516,6 +517,7 @@ public class JavaAflInstrument
             "javafl/CustomInit.class",
             "javafl/fuzz.class",
             "javafl/JavaAfl.class",
+            "javafl/JavaAfl$1.class",
         };
         try {
             for (String filename : filenames) {

@@ -75,15 +75,16 @@ add_jar(java-afl-base
         javafl/CustomInit.java
         javafl/fuzz.java
         javafl/JavaAflInstrument.java
+        javafl/JavaAflRun.java
     ENTRY_POINT javafl.JavaAflInstrument
     )
 add_dependencies(java-afl-base asm-jar)
 
 add_custom_command(
     OUTPUT java-afl-instrument.jar
-    COMMAND ${CMAKE_COMMAND} -E remove_directory combined/
-    COMMAND ${CMAKE_COMMAND} -E make_directory combined/javafl
-    COMMAND cd combined/
+    COMMAND ${CMAKE_COMMAND} -E remove_directory combined-instrument/
+    COMMAND ${CMAKE_COMMAND} -E make_directory combined-instrument/javafl
+    COMMAND cd combined-instrument/
     COMMAND ${Java_JAR_EXECUTABLE} -xf $<TARGET_PROPERTY:java-afl-base,JAR_FILE>
     COMMAND ${Java_JAR_EXECUTABLE} -xf ${ASM_JAR}
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/injected/javafl/JavaAfl.class javafl/
@@ -91,9 +92,23 @@ add_custom_command(
     DEPENDS java-afl-injected asm-jar
     )
 add_custom_target(java-afl-instrument DEPENDS java-afl-instrument.jar)
-add_jar(java-afl-instrument-all
+
+add_custom_command(
+    OUTPUT java-afl-run.jar
+    COMMAND ${CMAKE_COMMAND} -E remove_directory combined-run/
+    COMMAND ${CMAKE_COMMAND} -E make_directory combined-run/javafl
+    COMMAND cd combined-run/
+    COMMAND ${Java_JAR_EXECUTABLE} -xf $<TARGET_PROPERTY:java-afl-base,JAR_FILE>
+    COMMAND ${Java_JAR_EXECUTABLE} -xf ${ASM_JAR}
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/injected/javafl/JavaAfl.class javafl/
+    COMMAND ${Java_JAR_EXECUTABLE} -cfe ${CMAKE_CURRENT_BINARY_DIR}/java-afl-run.jar javafl.JavaAflRun .
+    DEPENDS java-afl-injected asm-jar
+    )
+add_custom_target(java-afl-run DEPENDS java-afl-run.jar)
+
+add_jar(java-afl-all
     SOURCES
     # This is just a dummy source file that enables to run this target:
         javafl/CustomInit.java
-    INCLUDE_JARS java-afl-instrument.jar)
-add_dependencies(java-afl-instrument-all java-afl-instrument)
+    INCLUDE_JARS java-afl-instrument.jar java-afl-run.jar)
+add_dependencies(java-afl-all java-afl-instrument java-afl-run)

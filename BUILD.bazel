@@ -103,3 +103,20 @@ java_binary(
     main_class = "javafl.JavaAflInstrument",
     visibility = ["//visibility:public"],
 )
+
+java_binary(
+    name = "java-afl-run",
+    srcs = [
+        "javafl/JavaAflRun.java",
+        ],
+    deps = [
+        ":JavaAflRaw",
+        ":java-afl-instrument",
+        "@asm//jar",
+    ],
+    resources = [
+        ":JavaAfl-injected",
+    ],
+    main_class = "javafl.JavaAflRun",
+    visibility = ["//visibility:public"],
+)

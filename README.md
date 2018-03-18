@@ -14,10 +14,14 @@ server and persistent modes that enable you to skip some
 initialization code and keep the JVM running longer than for just one
 input.
 
-First you need to instrument a program that you have. This is done by
-running the built `java-afl-instrument.jar` and instrumenting each jar
-or class file that you want to include in your program. No source code
-modifications are necessary to get started:
+### Ahead of time instrumentation
+
+Ahead of time instrumentation works by instrumenting specific .jar or
+.class files that you want to run with `afl-fuzz` for your
+program. This is done by running the built `java-afl-instrument.jar`
+and instrumenting each jar or class file that you want to include in
+your program. No source code modifications are necessary to get
+started:
 
 ```bash
 $ java -jar java-afl-instrument.jar instrumented/ ClassToTest.class
@@ -37,7 +41,36 @@ $ java-afl-fuzz -m 20000 -i in/ -o /dev/shm/fuzz-out/ -- java -cp instrumented/ 
 $ java-afl-fuzz -m 20000 -i in/ -o /dev/shm/fuzz-out/ -- java -jar instrumented/jar-to-test.jar
 ```
 
-Parameters are having following functions:
+### Just in time instrumentation
+
+Just in time instrumentation works by wrapping the main function of a
+program that you want to run around a custom instrumentation injecting
+[ClassLoader](https://docs.oracle.com/javase/7/docs/api/java/lang/ClassLoader.html). This
+way you will get more thorough instrumentation than just running ahead
+of time instrumentation on your program, but at the same time the
+instrumentation likely covers code that you are not interested in.
+
+Just in time instrumentation works by adding both `java-afl-run.jar`
+and the target classes to CLASSPATH and running `javafl.JavaAflRun`
+class with the target class name as a parameter:
+
+```bash
+$ java-afl-fuzz -m 20000 -i in/ -o /dev/shm/fuzz-out/ \
+      -- java -cp java-afl-run.jar:. javafl.JavaAflRun ClassToTest
+$ java-afl-fuzz -m 20000 -i in/ -o /dev/shm/fuzz-out/ \
+      -- java -cp java-afl-run.jar:jar-to-test.jar javafl.JavaAflRun ClassToTest
+```
+
+Notice that there is no need to first instrument the class files, as
+it is done on fly. This has same platform specific limitations as
+ahead of time compilation, as this instrumentation injects native JNI
+code into the used files. So you can only fuzz programs with
+`java-afl-run.jar` on similar enough systems that `java-afl-run.jar`
+was built on.
+
+### java-afl-fuzz parameters
+
+Parameters to `java-afl-fuzz` command have following functions:
 
 * `-i in/`: Input directory of initial data that then gets modified
   over the fuzzing process.

@@ -21,7 +21,8 @@ public class JavaAfl implements Thread.UncaughtExceptionHandler
     // This is here so that this class won't be accidentally instrumented.
     static public final String INSTRUMENTATION_MARKER = "__JAVA-AFL-INSTRUMENTED-CLASSFILE__";
 
-    public void uncaughtException(Thread t, Throwable e) {
+    public void uncaughtException(Thread t, Throwable e)
+    {
         javafl.JavaAfl._handle_uncaught_exception();
         e.printStackTrace(System.err);
         System.exit(1);
@@ -81,6 +82,13 @@ public class JavaAfl implements Thread.UncaughtExceptionHandler
         _init_impl(is_persistent);
         JavaAfl handler = new JavaAfl();
         Thread.setDefaultUncaughtExceptionHandler(handler);
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                // TODO bad exit combination when in persistent mode...
+                JavaAfl._after_main();
+            }
+        });
     }
 
     static protected native void _init_impl(boolean is_persistent);

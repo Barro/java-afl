@@ -60,6 +60,7 @@ java -cp "$CLASSPATH" javafl.JavaAflInject out/javafl/JavaAfl.class out/libjava-
     set -euo pipefail
     mkdir -p out/full/javafl
     cp out/javafl/JavaAfl.class out/full/javafl/
+    cp out/javafl/JavaAfl\$*.class out/full/javafl/
     cp out/javafl/CustomInit.class out/full/javafl/
     cp out/javafl/fuzz.class out/full/javafl/
     cp out/javafl/JavaAflInstrument.class out/full/javafl/

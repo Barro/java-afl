@@ -36,7 +36,11 @@ public class Persistent
             } else {
                 read = System.in.read(data, 0, data.length);
                 // Throw away all buffering information from stdin:
-                System.in.skip(9999999);
+                try {
+                    System.in.skip(9999999);
+                } catch (java.io.IOException e) {
+                    // pass
+                }
             }
             test.Utils.fuzz_one(data, read, values);
         }
