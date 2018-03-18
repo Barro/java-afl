@@ -185,6 +185,8 @@ Performance numbers on Intel Core i7-3770K CPU @ 3.50GHz with OpenJDK
 
 ## TODO
 
+* Support instrumentation generation at runtime with an alternative
+  class-loader.
 * Support deferred init for arbitrary given method without source code
   modifications.
 * Dynamically figure out the used map size from afl-showmap.
