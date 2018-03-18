@@ -274,7 +274,8 @@ Performance numbers on Intel Core i7-3770K CPU @ 3.50GHz with OpenJDK
   generated program locations as a fast probabilistic memory bound
   approximation of the program execution path.
 * Inspired by [python-afl](http://jwilk.net/software/python-afl) and
-  [Kelinci](https://github.com/isstac/kelinci).
+  [Kelinci](https://github.com/isstac/kelinci). Just in time
+  instrumentation idea from [JQF](https://github.com/rohanpadhye/jqf).
 
 ## Dependencies
 
@@ -290,6 +291,7 @@ Mandatory dependencies to build this:
 Optional dependencies for building include one of these:
 
 * Bazel
+* CMake
 
 ## License
 
