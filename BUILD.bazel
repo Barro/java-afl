@@ -39,7 +39,8 @@ javah -d $(@D) -jni javafl.JavaAfl
 genrule(
     name = "javafl-map-size",
     outs = ["javafl/afl-map-size.h"],
-    cmd = """\
+    cmd = select({
+        ":linux-mode": """\
 if command -v afl-showmap > /dev/null; then
     afl-showmap -b -o binary.map -- true 2>/dev/null || :
     stat --format "#define MAP_SIZE %s" binary.map > $@
@@ -47,6 +48,15 @@ else
     echo > $@
 fi
 """,
+        ":darwin-mode": """\
+if command -v afl-showmap > /dev/null; then
+    afl-showmap -b -o binary.map -- true 2>/dev/null || :
+    stat -f "#define MAP_SIZE %z" binary.map > $@
+else
+    echo > $@
+fi
+""",
+    })
 )
 
 cc_library(
