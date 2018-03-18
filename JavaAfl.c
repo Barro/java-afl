@@ -33,6 +33,12 @@
 
 #else // #ifndef HAVE_AFL_CONFIG_H
 
+#ifdef HAVE_AFL_MAP_SIZE_H
+
+#include <afl-map-size.h>
+
+#endif // #ifdef HAVE_AFL_MAP_SIZE_H
+
 // These constants must be kept in sync with afl-fuzz:
 #ifndef MAP_SIZE
 

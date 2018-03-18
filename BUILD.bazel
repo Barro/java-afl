@@ -36,6 +36,19 @@ javah -d $(@D) -jni javafl.JavaAfl
 """,
 )
 
+genrule(
+    name = "javafl-map-size",
+    outs = ["javafl/afl-map-size.h"],
+    cmd = """\
+if command -v afl-showmap > /dev/null; then
+    afl-showmap -b -o binary.map -- true 2>/dev/null || :
+    stat --format "#define MAP_SIZE %s" binary.map > $@
+else
+    echo > $@
+fi
+""",
+)
+
 cc_library(
     name = "java-afl-lib",
     srcs = [
@@ -47,6 +60,7 @@ cc_library(
     }),
     hdrs = [
         ":javafl-javah",
+        ":javafl-map-size",
     ],
     includes = [
         "external/local_jdk/include",
@@ -55,6 +69,7 @@ cc_library(
         ":linux-mode": ["external/local_jdk/include/linux"],
         ":darwin-mode": ["external/local_jdk/include/darwin"],
     }),
+    defines = ["HAVE_AFL_MAP_SIZE_H"],
 )
 
 cc_binary(
