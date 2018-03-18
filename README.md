@@ -62,7 +62,7 @@ $ java-afl-fuzz -m 20000 -i in/ -o /dev/shm/fuzz-out/ \
 ```
 
 Notice that there is no need to first instrument the class files, as
-it is done on fly. This has same platform specific limitations as
+it is done on fly. This has the same platform specific limitations as
 ahead of time compilation, as this instrumentation injects native JNI
 code into the used files. So you can only fuzz programs with
 `java-afl-run.jar` on similar enough systems that `java-afl-run.jar`
@@ -203,8 +203,8 @@ exists.
 programs with ease.
 
 ```bash
-$ bazel build :java-afl-instrument_deploy.jar
-$ bazel-bin/java-afl-instrument files-to-instrument...
+$ bazel build :java-afl-instrument_deploy.jar :java-afl-run_deploy.jar
+# Stand-alone jars are under  bazel-bin/ as java-afl-instrument_deploy.jar and java-afl-run_deploy.jar
 ```
 
 ### CMake
@@ -216,7 +216,7 @@ while.
 ```bash
 $ ( mkdir -p build-cmake && cd build-cmake && cmake .. -GNinja )
 $ ninja -C build-cmake
-$ java -jar build-cmake/java-afl-instrument.jar files-to-instrument...
+# Stand-alone jars are under build-cmake/ as java-afl-instrument.jar and java-afl-run.jar
 ```
 
 ### Travis CI [![Build Status](https://travis-ci.org/Barro/java-afl.svg?branch=master)](https://travis-ci.org/Barro/java-afl)
