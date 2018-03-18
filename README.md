@@ -83,7 +83,7 @@ $ java -jar java-afl-instrument.jar --custom-init instrumented/ jar-to-test.jar
 ```
 
 To put the application into deferred mode where all the initialization
-code that comes before `javafl.JavaAfl.init()` function can be done in
+code that comes before `javafl.fuzz.init()` function can be done in
 following fashion:
 
 ```java
@@ -91,7 +91,7 @@ public class ProgramPersistent {
     @javafl.CustomInit
     public static void main(String[] args) {
         ...
-        javafl.JavaAfl.init();
+        javafl.fuzz.init();
         // You need to read the actual input after initialization point.
         System.in.read(data_buffer);
         ... do actual input processing...
@@ -100,7 +100,7 @@ public class ProgramPersistent {
 ```
 
 To put the program into a persistent mode you need wrap the part that
-you want to execute around a `while (javafl.JavaAfl.loop(<iterations>))`
+you want to execute around a `while (javafl.fuzz.loop(<iterations>))`
 loop. If you read the input from `System.in`, you need to take care
 that you flush Java's buffering on it after you have read your data:
 
@@ -111,7 +111,7 @@ public class ProgramPersistent {
         ...
         byte[] data = new byte[128];
         int read = 128;
-        while (javafl.JavaAfl.loop(100000)) {
+        while (javafl.fuzz.loop(100000)) {
             read = System.in.read(data, 0, data.length);
             // Throw away all buffering information from stdin for the
             // next iteration:

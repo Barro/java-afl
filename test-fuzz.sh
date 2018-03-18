@@ -10,11 +10,11 @@ export AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1
 
 if [[ "${TRAVIS:-false}" == false ]]; then
     test_timeout=10
-    testcase_timeout=1000
+    testcase_timeout=1000+
 else
     # Travis CI needs more time for everything:
     test_timeout=20
-    testcase_timeout=2000
+    testcase_timeout=2000+
 fi
 
 for mode in Forking Deferred Persistent; do

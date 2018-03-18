@@ -30,7 +30,7 @@ public class Deferred
         }
         byte[] data = new byte[128];
         int read = 128;
-        javafl.JavaAfl.init();
+        javafl.fuzz.init();
         if (args.length >= 1) {
             read = (new java.io.FileInputStream(args[0])).read(data, 0, data.length);
         } else {

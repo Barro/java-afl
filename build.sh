@@ -34,6 +34,7 @@ JNI_PATHS=(
     -I/usr/lib/jvm/java-8-openjdk-amd64/include/linux)
 CLASSPATH=asm-6.1.jar:out
 javac -cp "$CLASSPATH" -d out javafl/CustomInit.java
+javac -cp "$CLASSPATH" -d out javafl/fuzz.java
 javac -cp "$CLASSPATH" -d out javafl/JavaAfl.java
 javac -cp "$CLASSPATH" -d out javafl/JavaAflInstrument.java
 javah -cp "$CLASSPATH" -d out -jni javafl.JavaAfl
@@ -46,6 +47,7 @@ java -cp "$CLASSPATH" javafl.JavaAflInject out/javafl/JavaAfl.class out/libjava-
     mkdir -p out/full/javafl
     cp out/javafl/JavaAfl.class out/full/javafl/
     cp out/javafl/CustomInit.class out/full/javafl/
+    cp out/javafl/fuzz.class out/full/javafl/
     cp out/javafl/JavaAflInstrument.class out/full/javafl/
     cp out/javafl/JavaAflInstrument\$*.class out/full/javafl/
     cd out/full/

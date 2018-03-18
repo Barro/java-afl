@@ -30,7 +30,7 @@ public class Persistent
         }
         byte[] data = new byte[128];
         int read = 128;
-        while (javafl.JavaAfl.loop(100000)) {
+        while (javafl.fuzz.loop(100000)) {
             if (args.length >= 1) {
                 read = (new java.io.FileInputStream(args[0])).read(data, 0, data.length);
             } else {

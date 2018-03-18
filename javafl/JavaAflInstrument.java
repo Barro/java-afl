@@ -493,8 +493,9 @@ public class JavaAflInstrument
     private static void add_JavaAfl_to_jar(JarOutputStream jar)
     {
         String[] filenames = {
+            "javafl/CustomInit.class",
+            "javafl/fuzz.class",
             "javafl/JavaAfl.class",
-            "javafl/CustomInit.class"
         };
         try {
             jar.putNextEntry(new JarEntry("javafl/"));
@@ -512,8 +513,9 @@ public class JavaAflInstrument
     private static void add_JavaAfl_to_directory(File directory)
     {
         String[] filenames = {
+            "javafl/CustomInit.class",
+            "javafl/fuzz.class",
             "javafl/JavaAfl.class",
-            "javafl/CustomInit.class"
         };
         try {
             for (String filename : filenames) {

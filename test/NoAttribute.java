@@ -22,7 +22,7 @@ public class NoAttribute
     {
         String value = "value";
         byte[] buffer = new byte[5];
-        javafl.JavaAfl.init();
+        javafl.fuzz.init();
         System.in.read(buffer);
         String read = new String(buffer);
         if (read.equals(value)) {
