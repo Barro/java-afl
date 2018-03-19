@@ -499,12 +499,20 @@ public class JavaAflInstrument
             "javafl/JavaAfl$1.class",
         };
         try {
-            jar.putNextEntry(new JarEntry("javafl/"));
+            try {
+                jar.putNextEntry(new JarEntry("javafl/"));
+            } catch (java.util.zip.ZipException e) {
+                System.err.println("Jar already has javafl/");
+            }
             for (String filename : filenames) {
-                jar.putNextEntry(new JarEntry(filename));
-                jar.write(
-                    input_stream_to_bytes(
-                        (InputStream)JavaAflInstrument.class.getResource("/" + filename).getContent()));
+                try {
+                    jar.putNextEntry(new JarEntry(filename));
+                    jar.write(
+                        input_stream_to_bytes(
+                            (InputStream)JavaAflInstrument.class.getResource("/" + filename).getContent()));
+                } catch (java.util.zip.ZipException e) {
+                    System.err.println("Jar already has " + filename);
+                }
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
