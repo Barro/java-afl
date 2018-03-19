@@ -166,7 +166,8 @@ Command line switches to `java-afl-instrument.jar`:
   program from two differently instrumented programs than from
   one. This switch makes the instrumentation depend solely on the
   input data for each class and will always result in the same result
-  between different instrumentation runs.
+  between different instrumentation runs. Just in time instrumentation
+  is always deterministic.
 
 Environmental variables:
 
@@ -254,7 +255,6 @@ Performance numbers on Intel Core i7-3770K CPU @ 3.50GHz with OpenJDK
 
 * Support deferred init for arbitrary given method without source code
   modifications.
-* Dynamically figure out the used map size from afl-showmap.
 * More ways to build this:
   * Ant
   * Maven

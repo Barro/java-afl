@@ -45,6 +45,20 @@ target_include_directories(
     java-afl-lib PRIVATE ${JNI_INCLUDE_DIRS} ${javah-include-dir})
 add_dependencies(java-afl-lib java-afl-javah)
 
+
+find_program(PROGRAM_AFL_SHOWMAP afl-showmap)
+if (NOT PROGRAM_AFL_SHOWMAP STREQUAL PROGRAM_AFL_SHOWMAP-NOTFOUND)
+    execute_process(
+        COMMAND afl-showmap -b -o binary.map -- true
+        OUTPUT_QUIET ERROR_QUIET)
+    execute_process(
+        COMMAND wc -c binary.map
+        OUTPUT_VARIABLE AFL_MAP_SIZE_RAW)
+    string(REPLACE " " ";" AFL_MAP_SIZE_LIST "${AFL_MAP_SIZE_RAW}")
+    list(GET AFL_MAP_SIZE_LIST 0 AFL_MAP_SIZE)
+    target_compile_definitions(java-afl-lib PRIVATE -DMAP_SIZE=${AFL_MAP_SIZE})
+endif()
+
 set(CMAKE_JAVA_INCLUDE_PATH ${ASM_JAR})
 add_jar(java-afl-inject
     SOURCES javafl/JavaAflInject.java javafl/JavaAfl.java
