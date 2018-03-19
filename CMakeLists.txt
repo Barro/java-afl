@@ -54,6 +54,7 @@ if (NOT PROGRAM_AFL_SHOWMAP STREQUAL PROGRAM_AFL_SHOWMAP-NOTFOUND)
     execute_process(
         COMMAND wc -c binary.map
         OUTPUT_VARIABLE AFL_MAP_SIZE_RAW)
+    string(STRIP "${AFL_MAP_SIZE_RAW}" AFL_MAP_SIZE_RAW)
     string(REPLACE " " ";" AFL_MAP_SIZE_LIST "${AFL_MAP_SIZE_RAW}")
     list(GET AFL_MAP_SIZE_LIST 0 AFL_MAP_SIZE)
     target_compile_definitions(java-afl-lib PRIVATE -DMAP_SIZE=${AFL_MAP_SIZE})
