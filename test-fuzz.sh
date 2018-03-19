@@ -25,22 +25,39 @@ export AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1
 test_timeout=10
 testcase_timeout=1000+
 
-for mode in Forking Deferred Persistent; do
-    rm -rf out/fuzz-"$mode"
-    timeout --preserve-status -s INT "$test_timeout" \
-            ./java-afl-fuzz -t "$testcase_timeout" -m 30000 -i in/ -o out/fuzz-"$mode" \
-            -- java -cp out/ins test."$mode"
+function check_fuzz_status()
+{
+    local mode=$1
+    local queue_files
     queue_files=$(find out/fuzz-"$mode"/queue -type f | grep -v .state | wc -l)
     if [[ "$queue_files" -lt 15 ]]; then
         echo >&2 "$mode mode does not seem to provide unique paths!"
         exit 1
     fi
+    local unstable_results
     unstable_results=$(
         grep stability out/fuzz-"$mode"/fuzzer_stats | grep -v "100.00%" || :)
     if [[ -n "${unstable_results:-}" ]]; then
         echo >&2 "$mode mode was unstable: $unstable_results"
         exit 1
     fi
+}
+
+for mode in Forking Deferred Persistent; do
+    rm -rf out/fuzz-"$mode"
+    timeout --preserve-status -s INT "$test_timeout" \
+            ./java-afl-fuzz -t "$testcase_timeout" -m 30000 -i in/ -o out/fuzz-"$mode" \
+            -- java -cp out/ins test."$mode"
+    check_fuzz_status "$mode"
+
+    # TODO persistent dynamic instrumentation is not 100% stable.
+    if [[ "$mode" == Persistent ]]; then
+        continue
+    fi
+    timeout --preserve-status -s INT "$test_timeout" \
+            ./java-afl-fuzz -t "$testcase_timeout" -m 30000 -i in/ -o out/fuzz-"$mode" \
+            -- java -cp java-afl-run.jar:out javafl.run test."$mode"
+    check_fuzz_status "$mode"
 done
 
 rm -rf out/fuzz-Null
@@ -61,5 +78,15 @@ timeout --preserve-status -s INT "$test_timeout" \
 crash_files=$(find out/fuzz-Crashing/crashes -name 'id:*' -type f | grep -v .state | wc -l)
 if [[ "$crash_files" -lt 1 ]]; then
     echo >&2 "There definitely should be some crashes!"
+    exit 1
+fi
+
+rm -rf out/fuzz-Crashing
+timeout --preserve-status -s INT "$test_timeout" \
+        ./java-afl-fuzz -t "$testcase_timeout" -m 30000 -i in/ -o out/fuzz-Crashing \
+        -- java -cp java-afl-run.jar:out javafl.run test.Crashing
+crash_files=$(find out/fuzz-Crashing/crashes -name 'id:*' -type f | grep -v .state | wc -l)
+if [[ "$crash_files" -lt 1 ]]; then
+    echo >&2 "There definitely should be some dynamic crashes!"
     exit 1
 fi

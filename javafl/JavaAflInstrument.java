@@ -570,6 +570,10 @@ public class JavaAflInstrument
                 System.exit(usage());
             }
         }
+        if (args.length <= arg_index) {
+            System.exit(usage());
+        }
+
         String ratio_str = System.getenv("AFL_INST_RATIO");
         if (ratio_str != null) {
             options.ratio = Integer.parseInt(ratio_str);

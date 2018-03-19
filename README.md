@@ -253,6 +253,9 @@ Performance numbers on Intel Core i7-3770K CPU @ 3.50GHz with OpenJDK
 
 ## TODO
 
+* Fix persistent mode dynamic instrumentation.
+* Check if a dynamically instrumentable class is a file and load it or
+  a full jar file instead.
 * Support deferred init for arbitrary given method without source code
   modifications.
 * More ways to build this:

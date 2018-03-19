@@ -51,6 +51,7 @@ javac -cp "$CLASSPATH" -d out javafl/CustomInit.java
 javac -cp "$CLASSPATH" -d out javafl/JavaAfl.java
 javac -cp "$CLASSPATH" -d out javafl/fuzz.java
 javac -cp "$CLASSPATH" -d out javafl/JavaAflInstrument.java
+javac -cp "$CLASSPATH" -d out javafl/run.java
 javah -cp "$CLASSPATH" -d out -jni javafl.JavaAfl
 cc -Os -shared -Wl,-soname,libjava-afl.so -o out/libjava-afl.so -fPIC "${JNI_PATHS[@]}" JavaAfl.c
 javac -cp "$CLASSPATH" -d out javafl/JavaAflInject.java
@@ -63,6 +64,7 @@ java -cp "$CLASSPATH" javafl.JavaAflInject out/javafl/JavaAfl.class out/libjava-
     cp out/javafl/JavaAfl\$*.class out/full/javafl/
     cp out/javafl/CustomInit.class out/full/javafl/
     cp out/javafl/fuzz.class out/full/javafl/
+    cp out/javafl/run.class out/full/javafl/
     cp out/javafl/JavaAflInstrument.class out/full/javafl/
     cp out/javafl/JavaAflInstrument\$*.class out/full/javafl/
     cd out/full/
@@ -70,6 +72,8 @@ java -cp "$CLASSPATH" javafl.JavaAflInject out/javafl/JavaAfl.class out/libjava-
 )
 # Put everything that we need into one file:
 jar -cfe "$DIR"/java-afl-instrument.jar javafl.JavaAflInstrument -C out/full .
+# Same for the dynamic instrumentation:
+jar -cfe "$DIR"/java-afl-run.jar javafl.run -C out/full .
 
 # Test classes and jarfile
 javac -d out/ test/Crashing.java
