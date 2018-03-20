@@ -236,8 +236,10 @@ JNIEXPORT void JNICALL Java_javafl_JavaAfl__1after_1main
     if (!g_is_persistent) {
         send_map(env, cls);
     }
-    // TODO this should not be needed here, but something in the
-    // fork server prevents this from existing cleanly.
+
+    // JVM likely waits for specific threads exit that do not exist
+    // anymore in the forked child processes. This exits from the
+    // program before any exit handlers get to run.
     _Exit(0);
 }
 

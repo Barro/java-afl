@@ -1,6 +1,7 @@
 This is a fork server based approach to fuzz Java applications on Java
 virtual machine with
-[american fuzzy lop](http://lcamtuf.coredump.cx/afl/).
+[american fuzzy lop](http://lcamtuf.coredump.cx/afl/). See
+[caveats section](#caveats) about the downsides of this approach.
 
 ## Usage
 
@@ -237,7 +238,8 @@ instrument programs that run only on some older versions of Java.
 ## Performance
 
 Performance numbers on Intel Core i7-3770K CPU @ 3.50GHz with OpenJDK
-1.8.0_151 and afl 2.52b:
+1.8.0_151 and afl 2.52b. These tests were done with the simple test
+programs that are provided at [test/](test/) directory.
 
 * Fork server mode around 750 executions/second for a program that
   does nothing. Closer to 300 when there is actually something
@@ -247,9 +249,10 @@ Performance numbers on Intel Core i7-3770K CPU @ 3.50GHz with OpenJDK
   probably maybe some tens of percents.
 * Persistent mode around 14000 executions/second. Highly depends on
   how much and how long JVM is able to optimize before being
-  killed. Around 31000 iterations/second for an empty while loop, that
-  is close to the maximum that native C code can handle with `afl-fuzz`
-  in persistent mode.
+  killed. See [caveats](#caveats) section about this. Around 31000
+  iterations/second for an empty while loop, that is close to the
+  maximum that native C code can handle with `afl-fuzz` in persistent
+  mode.
 
 ## TODO
 
@@ -258,6 +261,7 @@ Performance numbers on Intel Core i7-3770K CPU @ 3.50GHz with OpenJDK
   a full jar file instead.
 * Support deferred init for arbitrary given method without source code
   modifications.
+* Create a non-forking alternative for persistent mode.
 * More ways to build this:
   * Ant
   * Maven
@@ -292,6 +296,29 @@ Optional dependencies for building include one of these:
 
 * Bazel
 * CMake
+
+## Caveats
+
+Java virtual machine is a multi-threaded application and
+[fork()](http://man7.org/linux/man-pages/man2/fork.2.html) call only
+preserves the thread that called it. This creates some issues from
+performance and stability point of view:
+
+* There is no garbage collector running in the forked
+  process (at least with OpenJDK). Therefore there is a limit on
+  objects that the fuzz target can allocate during its lifetime. This
+  shouldn't be an issue with a generally lightweight fuzz targets that
+  can execute hundreds of times per second, but can become an issue
+  with more heavy ones.
+* Performance will suffer, as JVM will not be able to use knowledge
+  about hotspots in often executed functions.
+* Persistent mode has a limited number of cycles that it can run
+  before it runs out of memory due to no garbage collector running.
+  TODO create a non-forking alternative for persistent mode.
+  * This will make afl-fuzz to result in a timeout every so often when
+    the program runs out of some resource. If the timeout is set
+    manually to be relatively long in otherwise fast fuzz target, it
+    will needlessly delay the recovery from a resource leaking situation.
 
 ## License
 
