@@ -256,12 +256,14 @@ programs that are provided at [test/](test/) directory.
 
 ## TODO
 
-* Fix persistent mode dynamic instrumentation.
+* Fix persistent mode loop dynamic instrumentation.
 * Check if a dynamically instrumentable class is a file and load it or
   a full jar file instead.
 * Support deferred init for arbitrary given method without source code
-  modifications.
-* Create a non-forking alternative for persistent mode.
+  modifications. Just prefer the loop syntax and non-forking mode
+  instead of fork server one for more speed.
+  * Remove the need for `@javafl.CustomInit`.
+* Create a non-forking alternative mode.
 * More ways to build this:
   * Ant
   * Maven
