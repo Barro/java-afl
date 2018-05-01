@@ -27,6 +27,7 @@ public class JavaAflInject
     static class InjectingReader extends ClassReader
     {
         private String _data;
+        public boolean found_injection_value = false;
 
         public InjectingReader(
             FileInputStream file, String data) throws IOException
@@ -52,6 +53,7 @@ public class JavaAflInject
                 return null;
             }
             if (value.equals("<INJECT-JNI>")) {
+                this.found_injection_value = true;
                 return _data;
             }
             return value;
@@ -76,10 +78,14 @@ public class JavaAflInject
         gzip.write(library_data, 0, library_data.length);
         gzip.finish();
         String jni_data = data_output.toString("ISO-8859-1");
-        ClassReader reader = new InjectingReader(
+        InjectingReader reader = new InjectingReader(
             new FileInputStream(class_filename), jni_data);
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         reader.accept(writer, ClassReader.SKIP_DEBUG);
+        if (!reader.found_injection_value) {
+            throw new RuntimeException(
+                "Could not find a place to inject the data!");
+        }
         byte[] bytes = writer.toByteArray();
         (new java.io.FileOutputStream(class_filename)).write(bytes);
     }

@@ -87,7 +87,6 @@ add_custom_target(java-afl-injected DEPENDS injected)
 # set(CMAKE_JAVA_INCLUDE_PATH ${CMAKE_JAVA_INCLUDE_PATH})
 add_jar(java-afl-base
     SOURCES
-        javafl/CustomInit.java
         javafl/fuzz.java
         javafl/JavaAflInstrument.java
         javafl/run.java
@@ -124,6 +123,6 @@ add_custom_target(java-afl-run DEPENDS java-afl-run.jar)
 add_jar(java-afl-all
     SOURCES
     # This is just a dummy source file that enables to run this target:
-        javafl/CustomInit.java
+        javafl/fuzz.java
     INCLUDE_JARS java-afl-instrument.jar java-afl-run.jar)
 add_dependencies(java-afl-all java-afl-instrument java-afl-run)

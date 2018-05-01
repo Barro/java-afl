@@ -14,8 +14,22 @@
  * limitations under the License.
  */
 
-package javafl;
+package test;
 
-@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
-@java.lang.annotation.Target(java.lang.annotation.ElementType.METHOD)
-public @interface CustomInit {}
+import java.util.HashMap;
+
+public class Plain
+{
+    public static void main(String[] args) throws java.io.IOException
+    {
+        HashMap<Byte, Integer> values = test.Utils.values();
+        byte[] data = new byte[128];
+        int read = 128;
+        if (args.length >= 1) {
+            read = (new java.io.FileInputStream(args[0])).read(data, 0, data.length);
+        } else {
+            read = System.in.read(data, 0, data.length);
+        }
+        test.Utils.fuzz_one(data, read, values);
+    }
+}

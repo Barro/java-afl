@@ -47,7 +47,6 @@ JNI_PATHS=(
     -I/usr/lib/jvm/java-8-openjdk-amd64/include
     -I/usr/lib/jvm/java-8-openjdk-amd64/include/linux)
 CLASSPATH=asm-6.1.jar:out
-javac -cp "$CLASSPATH" -d out javafl/CustomInit.java
 javac -cp "$CLASSPATH" -d out javafl/JavaAfl.java
 javac -cp "$CLASSPATH" -d out javafl/fuzz.java
 javac -cp "$CLASSPATH" -d out javafl/JavaAflInstrument.java
@@ -62,7 +61,6 @@ java -cp "$CLASSPATH" javafl.JavaAflInject out/javafl/JavaAfl.class out/libjava-
     mkdir -p out/full/javafl
     cp out/javafl/JavaAfl.class out/full/javafl/
     cp out/javafl/JavaAfl\$*.class out/full/javafl/
-    cp out/javafl/CustomInit.class out/full/javafl/
     cp out/javafl/fuzz.class out/full/javafl/
     cp out/javafl/run.class out/full/javafl/
     cp out/javafl/JavaAflInstrument.class out/full/javafl/
@@ -78,15 +76,16 @@ jar -cfe "$DIR"/java-afl-run.jar javafl.run -C out/full .
 # Test classes and jarfile
 javac -d out/ test/Crashing.java
 javac -d out/ test/Utils.java
-javac -d out/ test/Forking.java
+javac -d out/ test/Plain.java
 javac -d out/ test/Deferred.java
 javac -d out/ test/Persistent.java
 javac -d out/ test/Null.java
 javac -d out/ test/NoAttribute.java
+javac -d out/ test/RawAllLoop.java
 (
     set -euo pipefail
     cd out
-    jar cfe test.jar test.Forking test/Utils.class test/Forking.class
+    jar cfe test.jar test.Plain test/Utils.class test/Plain.class
 )
 
 java -jar java-afl-instrument.jar \
@@ -94,11 +93,11 @@ java -jar java-afl-instrument.jar \
      out/test.jar \
      out/test/Crashing.class \
      out/test/Utils.class \
-     out/test/Forking.class \
+     out/test/Plain.class \
      out/test/Deferred.class \
      out/test/Persistent.class \
      out/test/Null.class
 
-java -jar java-afl-instrument.jar --custom-init \
+java -jar java-afl-instrument.jar \
      out/ins \
      out/test/NoAttribute.class

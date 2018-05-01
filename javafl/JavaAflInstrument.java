@@ -44,9 +44,17 @@ import static org.objectweb.asm.Opcodes.*;
 
 public class JavaAflInstrument
 {
-    static private int total_locations = 0;
-    static private int total_jarfiles = 0;
-    static private int total_classfiles = 0;
+    private static final String[] INJECT_FILES = {
+        "javafl/fuzz.class",
+        "javafl/JavaAfl.class",
+        "javafl/JavaAfl$ExitHandlingSecurityManager.class",
+        "javafl/JavaAfl$ForkSurrogateMonitor.class",
+        "javafl/JavaAfl$SurrogateExitSecurityException.class",
+    };
+
+    private static int total_locations = 0;
+    private static int total_jarfiles = 0;
+    private static int total_classfiles = 0;
 
     static class InstrumentedClass
     {
@@ -69,25 +77,22 @@ public class JavaAflInstrument
     static class InstrumentationOptions
     {
         int ratio;
-        boolean has_custom_init;
         boolean deterministic;
 
-        InstrumentationOptions(int ratio_, boolean has_custom_init_, boolean deterministic_)
+        InstrumentationOptions(int ratio_, boolean deterministic_)
         {
             ratio = ratio_;
-            has_custom_init = has_custom_init_;
             deterministic = deterministic_;
         }
 
         InstrumentationOptions(InstrumentationOptions other)
         {
-            this(other.ratio, other.has_custom_init, other.deterministic);
+            this(other.ratio, other.deterministic);
         }
 }
 
     static class InstrumentingMethodVisitor extends MethodVisitor
     {
-        private boolean _has_custom_init;
         private int _instrumentation_ratio;
         private boolean _is_main;
         private InstrumentationOptions _options;
@@ -103,7 +108,6 @@ public class JavaAflInstrument
             _is_main = is_main;
             _random = random;
             _instrumentation_ratio = options.ratio;
-            _has_custom_init = options.has_custom_init;
         }
 
         private void _aflMaybeLog()
@@ -147,7 +151,8 @@ public class JavaAflInstrument
         public void visitCode()
         {
             mv.visitCode();
-            if (_is_main && !_has_custom_init) {
+            if (_is_main) {
+                // TODO new instrumentation
                 mv.visitMethodInsn(
                     INVOKESTATIC,
                     "javafl/JavaAfl",
@@ -186,17 +191,6 @@ public class JavaAflInstrument
                     false);
             }
             mv.visitInsn(opcode);
-        }
-
-        @Override
-        public AnnotationVisitor visitAnnotation(String desc, boolean visible)
-        {
-            // TODO it should be possible to also get the full class
-            // descriptor name out during the compilation time...
-            if (desc.equals("L" + javafl.CustomInit.class.getName().replace(".", "/") + ";")) {
-                _has_custom_init = true;
-            }
-            return null;
         }
     }
 
@@ -322,7 +316,7 @@ public class JavaAflInstrument
         int old_locations = JavaAflInstrument.total_locations;
         InstrumentationOptions try_options = new InstrumentationOptions(
             options);
-        // Some relatively shortlist of instrumentation ratios that
+        // Some relatively short list of instrumentation ratios that
         // eventually end up in zero:
         int[] max_ratios = {80, 65, 50, 35, 25, 15, 10, 5, 2, 1, 0};
         for (int i = 0; i < 100; i++) {
@@ -492,24 +486,25 @@ public class JavaAflInstrument
 
     private static void add_JavaAfl_to_jar(JarOutputStream jar)
     {
-        String[] filenames = {
-            "javafl/CustomInit.class",
-            "javafl/fuzz.class",
-            "javafl/JavaAfl.class",
-            "javafl/JavaAfl$1.class",
-        };
         try {
             try {
                 jar.putNextEntry(new JarEntry("javafl/"));
             } catch (java.util.zip.ZipException e) {
                 System.err.println("Jar already has javafl/");
             }
-            for (String filename : filenames) {
+            for (String filename : INJECT_FILES) {
                 try {
                     jar.putNextEntry(new JarEntry(filename));
-                    jar.write(
-                        input_stream_to_bytes(
-                            (InputStream)JavaAflInstrument.class.getResource("/" + filename).getContent()));
+                    InputStream resource_stream =
+                        JavaAflInstrument.class.getResourceAsStream("/" + filename);
+                    if (resource_stream == null) {
+                        String error = (
+"Unable to read resource file: '" + filename + "'. "
++ "Has any of the files in 'javafl' package been modified with new classes?");
+                        System.err.println(error);
+                        throw new RuntimeException(error);
+                    }
+                    jar.write(input_stream_to_bytes(resource_stream));
                 } catch (java.util.zip.ZipException e) {
                     System.err.println("Jar already has " + filename);
                 }
@@ -521,14 +516,8 @@ public class JavaAflInstrument
 
     private static void add_JavaAfl_to_directory(File directory)
     {
-        String[] filenames = {
-            "javafl/CustomInit.class",
-            "javafl/fuzz.class",
-            "javafl/JavaAfl.class",
-            "javafl/JavaAfl$1.class",
-        };
         try {
-            for (String filename : filenames) {
+            for (String filename : INJECT_FILES) {
                 File target = new File(directory, filename);
                 File class_directory = target.getParentFile();
                 if (!class_directory.exists()) {
@@ -547,7 +536,7 @@ public class JavaAflInstrument
     private static int usage()
     {
         System.err.println(
-            "Usage: instrumentor [--custom-init]|[--deterministic]|[--] output-dir input.jar|input.class...");
+            "Usage: instrumentor [--deterministic]|[--] output-dir input.jar|input.class...");
         return 1;
     }
 
@@ -558,7 +547,7 @@ public class JavaAflInstrument
         }
 
         InstrumentationOptions options = new InstrumentationOptions(
-            100, false, false);
+            100, false);
         boolean parsing = true;
         int arg_index = -1;
         while (parsing) {
@@ -566,8 +555,6 @@ public class JavaAflInstrument
             String argument = args[arg_index];
             if (!argument.startsWith("--")) {
                 parsing = false;
-            } else if (argument.equals("--custom-init")) {
-                options.has_custom_init = true;
             } else if (argument.equals("--deterministic")) {
                 options.deterministic = true;
             } else if (argument.equals("-h") || argument.equals("--help")) {

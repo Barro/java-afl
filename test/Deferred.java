@@ -20,7 +20,6 @@ import java.util.HashMap;
 
 public class Deferred
 {
-    @javafl.CustomInit
     public static void main(String[] args) throws java.io.IOException
     {
         HashMap<Byte, Integer> values = new HashMap<Byte, Integer>();

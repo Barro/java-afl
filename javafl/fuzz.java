@@ -16,37 +16,84 @@
 
 package javafl;
 
+/**
+ * Public user facing interface to initialization functions
+ *
+ * End-users of this library should call these functions if they want
+ * to optimize their 
+ */
 public class fuzz
 {
     // This is here so that this class won't be accidentally instrumented.
     static public final String INSTRUMENTATION_MARKER = "__JAVA-AFL-INSTRUMENTED-CLASSFILE__";
 
-    // Function to use in the deferred mode in combination
-    // with @javafl.CustomInit annotation:
-    static public void init()
+    /**
+     * In forking mode makes new children to start at the calling
+     * point of this function
+     *
+     * Usage:
+     *
+     * ... do initial configuration here...
+     * javafl.fuzz.init();
+     * read_bytes = System.in.read(data_buffer);
+     * ... do actual fuzzing here...
+     *
+     * It is recommended that you use fuzz.loop() function in the
+     * surrogate mode instead of fuzz.init() function in forking
+     * mode. Only time this makes sense if the program has a global
+     * state that you want to reset before every fuzzing iteration to
+     * gain stability.
+     */
+    public static void init()
     {
-        javafl.JavaAfl._init(false);
+        javafl.JavaAfl._init_deferred();
     }
 
-    static private boolean _allow_persistent = false;
-    static private int _current_iteration = 0;
-    static public boolean loop(int iterations)
+    /**
+     * Marks a loop to do fuzzing iterations repeatedly
+     *
+     * Usage:
+     *
+     * ... do initial configuration here...
+     * while (javafl.fuzz.loop()) {
+     *     read_bytes = System.in.read(data_buffer);
+     *     ... do actual fuzzing here...
+     * }
+     *
+     * This prevents the program to restart between fuzzing
+     * iterations. When combined with the default surrogate mode, this
+     * provides the lowest overhead for fuzzing with tens of thousands
+     * of possible iterations per second for trivial fuzz targets.
+     */
+    public static boolean loop()
     {
-        if (_current_iteration == 0) {
-            String persistent_set = System.getenv("JAVA_AFL_PERSISTENT");
-            _allow_persistent = persistent_set != null;
-            javafl.JavaAfl._init(_allow_persistent);
-            _current_iteration = 1;
-            return true;
+        return javafl.JavaAfl._persistent_mode_loop();
+    }
+
+    /**
+     * Marks a loop to do fuzzing iterations repeatedly until a
+     * certain point
+     * 
+     * Usage:
+     *
+     * ... do initial configuration here...
+     * while (javafl.fuzz.loop(10000)) {
+     *     read_bytes = System.in.read(data_buffer);
+     *     ... do actual fuzzing here...
+     * }
+     *
+     * This prevents the program to restart between fuzzing
+     * iterations until there have been the requested amount of
+     * iterations. You should use the fuzz.loop() function without
+     * numerical arguments in the default surrogate mode to get the
+     * highest performance.
+     */
+    public static boolean loop(long iterations)
+    {
+        if (iterations < 1) {
+            throw new IllegalArgumentException(
+                "Expected persistent mode loop to have at least 1 iteration!");
         }
-        if (_allow_persistent && _current_iteration < iterations) {
-            javafl.JavaAfl._send_map();
-            _current_iteration++;
-            return true;
-        }
-        if (_allow_persistent) {
-            javafl.JavaAfl._send_map();
-        }
-        return false;
+        return javafl.JavaAfl._persistent_mode_loop(iterations);
     }
 }

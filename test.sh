@@ -16,6 +16,53 @@
 
 set -xeuo pipefail
 
+# Basic test set with the full instrumentation should be working for
+# all basic combinations:
+function assert_ok()
+{
+    local exit_status=$?
+    local message=$1
+    echo >&2 "Unsuccessful exit status $exit_status: $message"
+    return 1
+}
+
+function assert_failure()
+{
+    local exit_status=$?
+    local expected_exit_code=$1
+    local message=$2
+    echo >&2 "Wrong exit code: was $exit_status != expected $expected_exit_code: $message"
+    return 1
+}
+
+function execute_test_commands()
+{
+    local RAW_CMD=("$@")
+    "${RAW_CMD[@]}" ok \
+        || assert_ok "Program should exit successfully" "${RAW_CMD[@]}"
+    "${RAW_CMD[@]}" persistent \
+        || assert_ok "Program should exit successfully" "${RAW_CMD[@]}"
+    "${RAW_CMD[@]}" deferred \
+        || assert_ok "Program should exit successfully" "${RAW_CMD[@]}"
+    "${RAW_CMD[@]}" deferred-persistent \
+        || assert_ok "Program should exit successfully" "${RAW_CMD[@]}"
+}
+
+RAW_JAVA_CMD=(java -cp out/ins:out test.RawAllLoop)
+execute_test_commands "${RAW_JAVA_CMD[@]}"
+"${RAW_JAVA_CMD[@]}" exit \
+    && assert_failure 1 "Suddenly terminating program should exit with non-zero exit code" "${RAW_JAVA_CMD[@]}"
+"${RAW_JAVA_CMD[@]}" exception \
+    && assert_failure 1 "Thrown exception should result in non-zero exit code" "${RAW_JAVA_CMD[@]}"
+
+RAW_SHOWMAP_CMD=(./java-afl-showmap -m 30000 -o /dev/null -- \
+    java -cp out/ins:out test.RawAllLoop)
+execute_test_commands "${RAW_SHOWMAP_CMD[@]}"
+"${RAW_SHOWMAP_CMD[@]}" exit \
+    || assert_ok "Suddenly terminating program should still result in instrumentation" "${RAW_SHOWMAP_CMD[@]}"
+"${RAW_SHOWMAP_CMD[@]}" exception \
+    && assert_failure 2 "Exception throwing program should result in instrumentation" "${RAW_SHOWMAP_CMD[@]}"
+
 # Default mode should produce differing files between runs:
 java -jar java-afl-instrument.jar \
      out/default/1 \
@@ -50,10 +97,10 @@ if [[ "$tuples_forking" -lt 6 ]]; then
     exit 1
 fi
 
-./java-afl-showmap -m 30000 -o out/tuples-forking.txt -- java -cp out/ins test.Forking < in/a.txt
-tuples_forking=$(wc -l < out/tuples-forking.txt)
-if [[ "$tuples_forking" -lt 6 ]]; then
-    echo >&2 "Failed to generate enough tuples in forking implementation!"
+./java-afl-showmap -m 30000 -o out/tuples-plain.txt -- java -cp out/ins test.Plain < in/a.txt
+tuples_plain=$(wc -l < out/tuples-plain.txt)
+if [[ "$tuples_plain" -lt 6 ]]; then
+    echo >&2 "Failed to generate enough tuples in plain implementation!"
     exit 1
 fi
 

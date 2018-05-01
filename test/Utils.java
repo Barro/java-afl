@@ -20,6 +20,16 @@ import java.util.HashMap;
 
 public class Utils
 {
+    static public HashMap<Byte, Integer> values()
+    {
+        HashMap<Byte, Integer> values = new HashMap<Byte, Integer>();
+        for (int i = 0; i < 'z' - 'a'; ++i) {
+            byte key = (byte)('a' + i);
+            values.put(key, i);
+        }
+        return values;
+    }
+
     static public void fuzz_one(byte[] data, int size, HashMap<Byte, Integer> values)
     {
         long total = 0;

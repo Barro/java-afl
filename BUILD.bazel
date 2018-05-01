@@ -114,7 +114,6 @@ cp javafl/JavaAfl.class $@
 java_binary(
     name = "java-afl-instrument",
     srcs = [
-        "javafl/CustomInit.java",
         "javafl/fuzz.java",
         "javafl/JavaAflInstrument.java",
         ],

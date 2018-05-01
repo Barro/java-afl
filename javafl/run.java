@@ -84,7 +84,7 @@ public class run extends ClassLoader
     private static int usage()
     {
         System.err.println(
-            "Usage: java-afl-run [--custom-init] main.Class [args-to-main.Class]...");
+            "Usage: java-afl-run main.Class [args-to-main.Class]...");
         return 1;
     }
 
@@ -100,14 +100,10 @@ public class run extends ClassLoader
 
         JavaAflInstrument.InstrumentationOptions options =
             new JavaAflInstrument.InstrumentationOptions(
-                100, false, true);
+                100, true);
 
         int arg_index = 0;
         String argument = args[arg_index];
-        if (argument.equals("--custom-init")) {
-            options.has_custom_init = true;
-            arg_index++;
-        }
 
         String ratio_str = System.getenv("AFL_INST_RATIO");
         if (ratio_str != null) {

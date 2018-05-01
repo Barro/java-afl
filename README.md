@@ -1,19 +1,31 @@
-This is a fork server based approach to fuzz Java applications on Java
-virtual machine with
-[american fuzzy lop](http://lcamtuf.coredump.cx/afl/). See
-[caveats section](#caveats) about the downsides of this approach.
+This is a binary rewriting based approach to fuzz Java applications on
+Java virtual machine with
+[american fuzzy lop](http://lcamtuf.coredump.cx/afl/). See the
+[caveats section](#caveats) about the downsides of the optional fork
+server mode that can be part of this approach.
 
 ## Usage
 
 Fuzzing with american fuzzy lop works by instrumenting the compiled
 Java bytecode with probabilistic program coverage revealing
 instrumentation. There are general types of instrumeting fuzzing modes
-in programs that can be fuzzed with `afl-fuzz` command. The default
-fork server mode does not need any modifications to the program source
-code and can work as is. There are also more efficient deferred fork
-server and persistent modes that enable you to skip some
-initialization code and keep the JVM running longer than for just one
-input.
+in programs that can be fuzzed with `afl-fuzz` command. By default
+this does not need any modifications to the program source code and
+can work as is.
+
+There is also more efficient persistent loop mode that enables you to
+skip the initialization code and make the `afl-fuzz` to focus on
+executing the actual interesting parts of the program.
+
+This started as a fork server based approach to fuzz Java programs,
+but has been replaced by more efficient non-forking approach by
+default. The instrumented binaries support both approaches and
+switching between them works through an environmental variable. It can
+be beneficial to use the slower fork server approach when you need to
+investigate stability issues with the program, or when the program
+actually leaks memory. See the
+[caveats section](#caveats) about the downsides of the fork server
+mode.
 
 ### Ahead of time instrumentation
 
@@ -52,7 +64,7 @@ of time instrumentation on your program, but at the same time the
 instrumentation likely covers code that you are not interested in.
 
 Just in time instrumentation works by adding both `java-afl-run.jar`
-and the target classes to CLASSPATH and running `javafl.run`
+and the target classes to `CLASSPATH` and running `javafl.run`
 class with the target class name as a parameter:
 
 ```bash
@@ -80,7 +92,8 @@ Parameters to `java-afl-fuzz` command have following functions:
   directory pointing to a physical hard drive.
 * `-m 20000`: Higher virtual memory limit that enables JVM to run, as
   the default memory limit in `afl-fuzz` is 50 megabytes. JVM can
-  allocate around 10 gigabytes of virtual memory by default.
+  allocate around 10 gigabytes of virtual memory by default depending
+  on the settings.
 
 More detailed description of available options can be found from
 [american fuzzy lop's README](http://lcamtuf.coredump.cx/afl/README.txt). You
@@ -91,30 +104,9 @@ instances on the same machine to keep memory usage sane.
 
 ### Advanced usage
 
+By default java-afl works in a mode that TODO no forkserver...
 More efficient deferred and persistent modes start each fuzzing
-iteration later than at the beginning of `main()` function. Using
-deferred or persistent mode requires either a special annotation for
-the `main()` function or `--custom-init` flag to the instrument
-program:
-
-
-```java
-public class ProgramCustom {
-    @javafl.CustomInit
-    public static void main(String args[]) {
-        ...
-    }
-}
-```
-
-Or you can instrument unmodified code in such way that the init
-function does not need to reside inside `main()` by making
-`--custom-init` as the first parameter:
-
-```bash
-$ java -jar java-afl-instrument.jar --custom-init instrumented/ ClassToTest.class
-$ java -jar java-afl-instrument.jar --custom-init instrumented/ jar-to-test.jar
-```
+iteration later than at the beginning of `main()` function.
 
 To put the application into deferred mode where all the initialization
 code that comes before `javafl.fuzz.init()` function can be done in
@@ -122,7 +114,6 @@ following fashion:
 
 ```java
 public class ProgramPersistent {
-    @javafl.CustomInit
     public static void main(String[] args) {
         ...
         javafl.fuzz.init();
@@ -134,22 +125,18 @@ public class ProgramPersistent {
 ```
 
 To put the program into a persistent mode you need wrap the part that
-you want to execute around a `while (javafl.fuzz.loop(<iterations>))`
-loop. If you read the input from `System.in`, you need to take care
-that you flush Java's buffering on it after you have read your data:
+you want to execute around a `while (javafl.fuzz.loop())` loop. If you
+read the input from `System.in`, you need to take care that you flush
+Java's buffering on it after you have read your data:
 
 ```java
 public class ProgramPersistent {
-    @javafl.CustomInit
     public static void main(String[] args) {
         ...
         byte[] data = new byte[128];
         int read = 128;
-        while (javafl.fuzz.loop(100000)) {
+        while (javafl.fuzz.loop()) {
             read = System.in.read(data, 0, data.length);
-            // Throw away all buffering information from stdin for the
-            // next iteration:
-            System.in.skip(9999999);
             ... do actual input processing...
         }
         ...
@@ -161,7 +148,6 @@ public class ProgramPersistent {
 
 Command line switches to `java-afl-instrument.jar`:
 
-* `--custom-init`
 * `--deterministic`: by default java-afl produces random class files
   to make it possible to probabilistically get bigger coverage on the
   program from two differently instrumented programs than from
@@ -177,8 +163,8 @@ Environmental variables:
   probabilistically select a smaller instrumentation ratio. Smaller
   instrumentation ratios are useful in big programs where resulting
   program execution path traces would otherwise fill the default 16
-  bit state map and increasing the map size would add unneeded
-  performance penalty.
+  bit (65536 entries) state map and increasing the map size would add
+  unneeded performance penalty.
 
 ## Building
 
@@ -196,8 +182,7 @@ CFLAGS="-I<path-to-afl-src-dir> -DHAVE_AFL_CONFIG_H"
 
 This makes the compiled information match to what afl-fuzz expects if
 it has been modified in any way. Build systems also try to deduce this
-(TODO) during compilation from existing `afl-showmap` command if such
-exists.
+during compilation from existing `afl-showmap` command if such exists.
 
 ### Bazel
 
@@ -256,12 +241,8 @@ programs that are provided at [test/](test/) directory.
 
 ## TODO
 
-* Fix persistent mode dynamic instrumentation.
 * Check if a dynamically instrumentable class is a file and load it or
   a full jar file instead.
-* Support deferred init for arbitrary given method without source code
-  modifications.
-* Create a non-forking alternative for persistent mode.
 * More ways to build this:
   * Ant
   * Maven
@@ -314,11 +295,17 @@ performance and stability point of view:
   about hotspots in often executed functions.
 * Persistent mode has a limited number of cycles that it can run
   before it runs out of memory due to no garbage collector running.
-  TODO create a non-forking alternative for persistent mode.
   * This will make afl-fuzz to result in a timeout every so often when
     the program runs out of some resource. If the timeout is set
     manually to be relatively long in otherwise fast fuzz target, it
     will needlessly delay the recovery from a resource leaking situation.
+
+Non-persistent fork server mode can be useful if the fuzz target has a
+global state that you want to reset after every execution and speed is
+not the absolute importance. You should not use the fork server mode
+with combination of persistent mode, as if your fuzz target reliably
+works in the persistent mode, it should also work in the non-forking
+mode.
 
 ## License
 
